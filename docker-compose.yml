@@ -1,0 +1,8 @@
+---
+services:
+  digstsgql:
+    build: .
+    volumes:
+      - ./digstsgql/:/app/digstsgql/:ro
+    ports:
+      - "127.0.0.1:8000:8000"

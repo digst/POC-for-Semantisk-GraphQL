@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "digstsgql"
+version = "0.1.0"
+description = "Semantic GraphQL project for Digitaliseringsstyrelsen"
+authors = ["Magenta ApS <info@magenta.dk>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+strawberry-graphql = {version = "^0.248", extras = ["asgi"]}
+uvicorn = "^0.29"
+
+[tool.poetry.group.pre-commit.dependencies]
+mypy = "^1"
+pre-commit = "^3"
+ruff = "^0.7"
+deptry = "^0.16"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+plugins = ["strawberry.ext.mypy_plugin"]
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+
+[tool.deptry.per_rule_ignores]
+DEP002 = [
+  # uvicorn is used by the Dockerfile
+  "uvicorn",
+]
