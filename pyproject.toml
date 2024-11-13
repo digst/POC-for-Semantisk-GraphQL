@@ -8,6 +8,9 @@ authors = ["Magenta ApS <info@magenta.dk>"]
 python = "^3.11"
 strawberry-graphql = {version = "^0.248", extras = ["asgi"]}
 uvicorn = "^0.29"
+sqlalchemy = "^2"
+starlette = "^0.41"
+psycopg = "^3"
 
 [tool.poetry.group.pre-commit.dependencies]
 mypy = "^1"
@@ -32,4 +35,6 @@ force-single-line = true
 DEP002 = [
   # uvicorn is used by the Dockerfile
   "uvicorn",
+  # psycopg is used by sqlalchemy
+  "psycopg",
 ]

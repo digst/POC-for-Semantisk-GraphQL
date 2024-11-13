@@ -6,3 +6,10 @@ services:
       - ./digstsgql/:/app/digstsgql/:ro
     ports:
       - "127.0.0.1:8000:8000"
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: "root"
+      POSTGRES_PASSWORD: "insecure"
+      POSTGRES_DB: "digstsgql"
