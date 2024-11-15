@@ -7,7 +7,6 @@ authors = ["Magenta ApS <info@magenta.dk>"]
 [tool.poetry.dependencies]
 python = "^3.11"
 strawberry-graphql = {version = "^0.248", extras = ["asgi"]}
-strawberry-sqlalchemy-mapper = "^0.5"
 starlette = "^0.41"
 uvicorn = "^0.29"
 sqlalchemy = "^2"

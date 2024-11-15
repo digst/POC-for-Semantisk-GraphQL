@@ -1,16 +1,14 @@
 import strawberry
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
-from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyMapper
 
 from digstsgql import models
 
-strawberry_sqlalchemy_mapper = StrawberrySQLAlchemyMapper()
 
-
-@strawberry_sqlalchemy_mapper.type(models.Book)
+@strawberry.type
 class Book:
-    pass
+    title: str
+    author: str
 
 
 @strawberry.type
@@ -18,8 +16,12 @@ class Query:
     @strawberry.field
     async def books(self, info: strawberry.Info) -> list[Book]:
         session: AsyncSession = info.context["session"]
-        result = await session.scalars(Select(models.Book))
-        return result.all()
+
+        statement = Select(models.Book)
+        # result = await session.scalars(statement)
+        # return [Book(title=r.title, author=r.author) for r in result.all()]
+        objects = (await session.scalars(statement)).all()
+        return [Book(title=o.title, author=o.author) for o in objects]
 
 
 @strawberry.type
@@ -39,5 +41,4 @@ class Mutation:
         return "OK"
 
 
-strawberry_sqlalchemy_mapper.finalize()
 schema = strawberry.Schema(query=Query, mutation=Mutation)

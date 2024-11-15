@@ -2,7 +2,6 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.websockets import WebSocket
 from strawberry.asgi import GraphQL
-from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyLoader
 
 from digstsgql import database
 from digstsgql.models import Base
@@ -19,9 +18,6 @@ class CustomGraphQL(GraphQL):
                 "request": request,
                 "response": response,
                 "session": session,
-                "sqlalchemy_loader": StrawberrySQLAlchemyLoader(
-                    async_bind_factory=database.Session
-                ),
             }
 
 

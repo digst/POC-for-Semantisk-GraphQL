@@ -15,8 +15,8 @@ class Author(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    first_name: Mapped[str] = mapped_column(String)
-    last_name: Mapped[str] = mapped_column(String)
+    first_name: Mapped[str]
+    last_name: Mapped[str]
 
     books: Mapped[list["Book"]] = relationship(back_populates="author")
 
@@ -26,7 +26,7 @@ class Book(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    title: Mapped[str] = mapped_column(String)
+    title: Mapped[str]
 
     author_id: Mapped[int] = mapped_column(ForeignKey("author.id"))
     author: Mapped["Author"] = relationship(back_populates="books")
