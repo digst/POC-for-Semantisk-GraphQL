@@ -2,7 +2,15 @@
 services:
   digstsgql:
     build: .
+    command: ["uvicorn", "--factory", "digstsgql.app:create_app", "--host", "0.0.0.0", "--reload"]
+    environment:
+      # Database
+      DATABASE__USER: "root"
+      DATABASE__PASSWORD: "insecure"
+      DATABASE__HOST: "db"
+      DATABASE__NAME: "digstsgql"
     volumes:
+      # Mount python module to allow live-reload
       - ./digstsgql/:/app/digstsgql/:ro
     ports:
       - "127.0.0.1:8000:8000"

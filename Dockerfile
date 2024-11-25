@@ -21,7 +21,7 @@ RUN poetry install --no-root
 
 COPY digstsgql ./digstsgql
 
-CMD ["uvicorn", "--factory", "digstsgql.app:create_app", "--host", "0.0.0.0", "--reload"]
+CMD ["uvicorn", "--factory", "digstsgql.app:create_app", "--host", "0.0.0.0"]
 
 # Add build version to the environment last to avoid build cache misses
 ARG COMMIT_TAG

@@ -8,26 +8,24 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 
-USER = "root"
-PASSWORD = "insecure"
-HOST = "db"
-PORT = "5432"
-NAME = "digstsgql"
-
-DATABASE_URL = f"postgresql+psycopg://{USER}:{PASSWORD}@{HOST}:{PORT}/{NAME}"
+from digstsgql.config import Settings
 
 
-engine = create_async_engine(DATABASE_URL)
-Session = async_sessionmaker(engine)
+def create_async_sessionmaker(database_url: str) -> async_sessionmaker:
+    engine = create_async_engine(database_url)
+    Session = async_sessionmaker(engine)
+    return Session
 
 
 def run_upgrade(database_metadata: MetaData) -> None:
     """
-    Create all tables in the metadata, ignoring tables already present in the
-    database. A proper migration tool, such as alembic, is more appropriate.
+    Create all tables in the metadata, ignoring tables already present in the database.
+
+    A proper migration tool, such as alembic, is more appropriate.
     https://docs.sqlalchemy.org/en/20/tutorial/metadata.html#emitting-ddl-to-the-database
     """
-    engine = sqlalchemy.create_engine(DATABASE_URL)
+    settings = Settings()
+    engine = sqlalchemy.create_engine(settings.database.url)
     with engine.begin() as connection:
         database_metadata.create_all(connection)
 

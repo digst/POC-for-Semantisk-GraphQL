@@ -6,7 +6,9 @@ authors = ["Magenta ApS <info@magenta.dk>"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-strawberry-graphql = {version = "^0.248", extras = ["asgi"]}
+pydantic = "^2"
+pydantic-settings = "^2"
+strawberry-graphql = { version = "^0.248", extras = ["asgi"] }
 starlette = "^0.41"
 uvicorn = "^0.29"
 sqlalchemy = "^2"
@@ -23,7 +25,7 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.mypy]
-plugins = ["strawberry.ext.mypy_plugin"]
+plugins = ["pydantic.mypy", "strawberry.ext.mypy_plugin"]
 
 [tool.ruff.lint]
 extend-select = ["I"]
