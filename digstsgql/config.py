@@ -4,6 +4,8 @@ from pydantic_settings import SettingsConfigDict
 
 
 class Database(BaseModel):
+    """Database settings."""
+
     user: str
     password: str
     host: str
@@ -16,8 +18,13 @@ class Database(BaseModel):
 
 
 class Settings(BaseSettings):
+    """Top-level settings.
+
+    Settings are expected through environment variables. Nested objects are
+    delimited by `__`, e.g. `DATABASE__USER`.
+    """
+
     model_config = SettingsConfigDict(
-        # Allow e.g. `DATABASE__USER`
         env_nested_delimiter="__",
     )
 

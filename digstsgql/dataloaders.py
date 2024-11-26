@@ -1,35 +1,44 @@
+from functools import partial
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from strawberry.dataloader import DataLoader
 
 from digstsgql import db
-from digstsgql import schema
+
+# # https://github.com/graphql/dataloader?tab=readme-ov-file#using-with-graphql
 
 
-async def load_authors(session: AsyncSession, keys: list[int]) -> list[schema.Author]:
-    """Load authors from database and convert to Strawberry GraphQL models."""
-    statement = select(db.Author).where(db.Author.id.in_(keys))
+async def load_organisations(
+    session: AsyncSession, keys: list[UUID]
+) -> list[db.Organisation | None]:
+    """Load Organisation from database."""
+    statement = select(db.Organisation).where(db.Organisation.id.in_(keys))
     rows = (await session.scalars(statement)).all()
-    results = {
-        r.id: schema.Author(
-            id=r.id,
-            first_name=r.first_name,
-            last_name=r.last_name,
-        )
-        for r in rows
-    }
-    return [results[id] for id in keys]
+    results = {r.id: r for r in rows}
+    return [results.get(id) for id in keys]
 
 
-async def load_books(session: AsyncSession, keys: list[int]) -> list[schema.Book]:
-    """Load books from database and convert to Strawberry GraphQL models."""
-    statement = select(db.Book).where(db.Book.id.in_(keys))
+async def load_organisational_units(
+    session: AsyncSession, keys: list[UUID]
+) -> list[db.Organisationenhed | None]:
+    """Load Organisationenhed from database."""
+    statement = select(db.Organisationenhed).where(db.Organisationenhed.id.in_(keys))
     rows = (await session.scalars(statement)).all()
-    results = {
-        r.id: schema.Book(
-            id=r.id,
-            title=r.title,
-            author_id=r.author_id,
+    results = {r.id: r for r in rows}
+    return [results.get(id) for id in keys]
+
+
+class Dataloaders:
+    """Container for all dataloaders.
+
+    Used to get proper typing when accessing dataloaders in the resolvers
+    through the Strawberry context.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.organisations = DataLoader(load_fn=partial(load_organisations, session))
+        self.organisational_units = DataLoader(
+            load_fn=partial(load_organisational_units, session)
         )
-        for r in rows
-    }
-    return [results[id] for id in keys]

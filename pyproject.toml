@@ -6,9 +6,10 @@ authors = ["Magenta ApS <info@magenta.dk>"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+more-itertools = "^10"
 pydantic = "^2"
 pydantic-settings = "^2"
-strawberry-graphql = { version = "^0.248", extras = ["asgi"] }
+strawberry-graphql = "^0.253"
 starlette = "^0.41"
 uvicorn = "^0.29"
 sqlalchemy = "^2"

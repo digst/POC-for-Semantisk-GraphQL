@@ -10,6 +10,14 @@ docker compose up -d --build
 firefox http://localhost:8000/graphql/
 ```
 
+Make sure that you
+
+```graphql
+mutation {
+  loadData
+}
+```
+
 ## Configuration
 
 Parameters without a default value are required when deploying outside the
