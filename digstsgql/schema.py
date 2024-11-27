@@ -12,11 +12,32 @@ from digstsgql import db
 from digstsgql.dataloaders import Dataloaders
 
 
+@strawberry.type(description="Organisation type.")
+class OrganisationClassification:
+    # TODO: these should be langStrings
+    definition: str
+    preferred_label: str
+
+
+company_classification = OrganisationClassification(
+    definition="A business is an organization that produces and sells goods or services.",
+    preferred_label="Company.",
+)
+governmental_authority_classification = OrganisationClassification(
+    definition="Governmental administrative unit that administers legislation or administration of a particular area.",
+    preferred_label="Governmental authority.",
+)
+
+
 @strawberry.type(description="Organisation.")
 class Organisation:
     id: UUID
     user_key: str | None
     name: str | None
+
+    # topenhed_id: strawberry.Private[UUID | None]
+    company_id: strawberry.Private[UUID | None]
+    governmental_authority_id: strawberry.Private[UUID | None]
 
     @strawberry.field(description="Organisation's organisational units.")
     @staticmethod
@@ -31,6 +52,18 @@ class Organisation:
         )
         ids = list((await session.scalars(statement)).all())
         return await get_organisational_units(info=info, ids=ids)
+
+    @strawberry.field(description="Organisation's organisational units.")
+    @staticmethod
+    async def classifications(
+        root: "Organisation",
+    ) -> list[OrganisationClassification]:
+        classifications = []
+        if root.company_id is not None:
+            classifications.append(company_classification)
+        if root.governmental_authority_id is not None:
+            classifications.append(governmental_authority_classification)
+        return classifications
 
 
 @strawberry.type(description="Organisational unit.")
@@ -96,6 +129,8 @@ async def get_organisations(
             id=r.id,
             user_key=r.brugervendtnoegle,
             name=r.organisationsnavn,
+            company_id=r.virksomhed_id,
+            governmental_authority_id=r.myndighed_id,
         )
         for r in results
         if r is not None

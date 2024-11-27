@@ -103,9 +103,11 @@ class Organisation(Base):
     brugervendtnoegle: Mapped[str | None]
     organisationsnavn: Mapped[str | None]
 
-    # topenhed_id
-    # virksomhed_id
-    # myndighed_id
+    # TODO: these should be ForeignKeys, but the related models are not part of
+    # phase 1.
+    # topenhed_id: Mapped[UUID | None]
+    virksomhed_id: Mapped[UUID | None]
+    myndighed_id: Mapped[UUID | None]
 
 
 class Organisationenhed(Base):

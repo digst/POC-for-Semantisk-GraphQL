@@ -14,13 +14,16 @@ def _parse(data: str) -> list[dict[str, str]]:
 
 def organisation() -> Iterable[db.Organisation]:
     """Organisation.xlsx."""
+    # NOTE:
+    # - mynidighed_id renamed to myndighed_id.
+    # - 61fc2005-5e7c-44cd-6720-0f8f8864e1b4 was originally 61fc2005-5e7c-44cd-672-0f8f8864e1b4 (an invalid uuid).
     data = """\
-    id	brugervendtnoegle	organisationsnavn	topenhed_id	virksomhed_id	mynidighed_id
+    id	brugervendtnoegle	organisationsnavn	topenhed_id	virksomhed_id	myndighed_id
     bcd7008d-3287-48be-a456-d9667e7ce777	Korsbæk Kommune	Korsbæk Kommune	b9e45b18-b6ba-4434-bce4-844214aaaae8
     9eb2e5cf-b6ea-457a-a4c0-a639c1aa3efa	FOTM Grønland 1 IVS 	Grønland 1 IVS 	f2fb84a1-43f2-408c-adf0-5124e552749e	420f1c67-cbf9-408b-961a-427db149d7ab
     46d5e14c-5ee9-4ea7-bad2-d98dd0f86163	FOTM Sørensen ApS 	Sørensen ApS 	c3c389c6-85fa-4c4d-aec4-ab5754149149	c41e9c1a-48a9-4caa-81b4-e8fe9af2ef95
     28609960-b8db-4bfe-8291-b1241214e23d	FOTM Christiansen ApS 	Christiansen ApS 	d42883a2-9e6e-4081-bace-c6e8207da6d7	b9d32f2d-0af2-4685-9187-42ad62141583
-    aa2d6d8b-ee55-4f5a-99a0-10577388c1b7	FOTM Davidsen A/S	Davidsen A/S	701dad17-8145-4db8-9d9a-9750ad4beeeb	61fc2005-5e7c-44cd-672-0f8f8864e1b4
+    aa2d6d8b-ee55-4f5a-99a0-10577388c1b7	FOTM Davidsen A/S	Davidsen A/S	701dad17-8145-4db8-9d9a-9750ad4beeeb	61fc2005-5e7c-44cd-6720-0f8f8864e1b4
     cfd96638-b91f-4ff1-861d-5d8859249d4e	FOTM Kosteland I/S	Kosteland I/S	1cd7ed13-0d98-4bb2-a907-d5ba5e723308	8c18da7f-0b19-4d0a-93a6-8df37c781a5c
     3b7263e9-a346-46e0-b3c0-f5f369de2a90	FOTM Søndergaard	Søndergaard	da387046-7803-446b-9c2e-625957ef4627	98caf558-2095-4ecd-9474-a905e797cd67
     b56f4d4a-1ed6-47b7-9466-03b7c641fa34	FOTM skytteforening	FOTM skytteforening	abb5d1fe-c7ff-447e-95db-ff05dbc30748	3d5a1d7b-9ed3-4d83-9c8b-b1a60c68d288
@@ -34,6 +37,9 @@ def organisation() -> Iterable[db.Organisation]:
             id=r["id"],
             brugervendtnoegle=r["brugervendtnoegle"],
             organisationsnavn=r["organisationsnavn"],
+            # topenhed_id=r["topenhed_id"],
+            virksomhed_id=r["virksomhed_id"],
+            myndighed_id=r["myndighed_id"],
         )
 
 
