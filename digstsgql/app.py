@@ -2,13 +2,17 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
+from starlette.responses import PlainTextResponse
+from starlette.responses import RedirectResponse
 from starlette.responses import Response
+from starlette.routing import Route
 from starlette.types import ASGIApp
 from starlette.types import Receive
 from starlette.types import Scope
 from starlette.types import Send
 from starlette.websockets import WebSocket
 from strawberry.asgi import GraphQL
+from strawberry.printer import print_schema
 
 from digstsgql import db
 from digstsgql.config import Settings
@@ -72,9 +76,12 @@ def create_app():
         middleware=[
             Middleware(SessionMiddleware, sessionmaker=sessionmaker),
         ],
+        routes=[
+            Route("/", RedirectResponse("/graphql")),
+            Route("/graphql", CustomGraphQL(schema)),
+            # Schema definition in SDL format
+            Route("/graphql/schema.graphql", PlainTextResponse(print_schema(schema))),
+        ],
     )
-
-    graphql_app = CustomGraphQL(schema)
-    app.add_route("/graphql", graphql_app)
 
     return app
