@@ -86,7 +86,7 @@ def create_async_sessionmaker(database_url: str) -> async_sessionmaker:
     """
     engine = create_async_engine(
         database_url,
-        echo=True,
+        # echo=True,
     )
     session = async_sessionmaker(engine, class_=AsyncSessionWithLock)
     return session
