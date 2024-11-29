@@ -1,0 +1,3 @@
+digstsgql.magentahosted.dk {
+	reverse_proxy digstsgql:8000
+}

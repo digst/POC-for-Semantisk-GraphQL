@@ -14,6 +14,7 @@ services:
       - ./digstsgql/:/app/digstsgql/:ro
     ports:
       - "127.0.0.1:8000:8000"
+    restart: unless-stopped
 
   db:
     image: postgres:16
@@ -21,3 +22,22 @@ services:
       POSTGRES_USER: "root"
       POSTGRES_PASSWORD: "insecure"
       POSTGRES_DB: "digstsgql"
+    restart: unless-stopped
+
+  # https://caddyserver.com/docs/running#docker-compose
+  caddy:
+    profiles: [deploy]
+    image: caddy:2
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+      - "0.0.0.0:443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
