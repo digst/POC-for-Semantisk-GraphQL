@@ -12,6 +12,19 @@ def _parse(data: str) -> list[dict[str, str]]:
     return [row for row in reader]
 
 
+def myndighed() -> Iterable[db.Myndighed]:
+    """Myndighed.xlsx."""
+    data = """\
+    id	myndighedskode
+    4493ba96-87d5-4d81-9b94-7123d6813091	550
+    """
+    for r in _parse(data):
+        yield db.Myndighed(
+            id=r["id"],
+            myndighedskode=r["myndighedskode"],
+        )
+
+
 def organisation() -> Iterable[db.Organisation]:
     """Organisation.xlsx."""
     # NOTE:
@@ -106,4 +119,29 @@ def organisationenhed() -> Iterable[db.Organisationenhed]:
             enhedsnavn=r["enhedsnavn"],
             organisation_id=r["organisation_id"],
             overordnetenhed_id=r["overordnetenhed_id"],
+        )
+
+
+def virksomhed() -> Iterable[db.Virksomhed]:
+    """Virksomhed.xlsx."""
+    # NOTE:
+    # - 61fc2005-5e7c-44cd-6720-0f8f8864e1b4 was originally 61fc2005-5e7c-44cd-672-0f8f8864e1b4 (an invalid uuid).
+    data = """\
+    id	cvr_nummer
+    420f1c67-cbf9-408b-961a-427db149d7ab	45152278
+    c41e9c1a-48a9-4caa-81b4-e8fe9af2ef95	45152286
+    b9d32f2d-0af2-4685-9187-42ad62141583	45152294
+    61fc2005-5e7c-44cd-6720-0f8f8864e1b4	45152308
+    8c18da7f-0b19-4d0a-93a6-8df37c781a5c	45152324
+    98caf558-2095-4ecd-9474-a905e797cd67	45152332
+    3d5a1d7b-9ed3-4d83-9c8b-b1a60c68d288	45152340
+    5c846f62-ac0e-4e0b-97a9-4c29c4b0ecd0	45152367
+    0c4c2f91-d3dc-4ee0-95a9-980282aad803	45152375
+    b5e6f1c3-cc29-4661-85d1-6ed27abff173	37284114
+    4493ba96-87d5-4d81-9b94-7123d6813091	29189781
+    """
+    for r in _parse(data):
+        yield db.Virksomhed(
+            id=r["id"],
+            cvr_nummer=r["cvr_nummer"],
         )

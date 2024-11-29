@@ -1,89 +1,259 @@
 import itertools
+from typing import Any
+from typing import Callable
 from uuid import UUID
 
 import strawberry
-from more_itertools import only
+from graphql import GraphQLResolveInfo
+from more_itertools import one
 from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from strawberry.extensions import SchemaExtension
+from strawberry.schema_directive import Location
+from strawberry.utils.await_maybe import AwaitableOrValue
+from strawberry.utils.await_maybe import await_maybe
 
 from digstsgql import data
 from digstsgql import db
 from digstsgql.dataloaders import Dataloaders
 
-
-@strawberry.type(description="Organisation type.")
-class OrganisationClassification:
-    # TODO: these should be langStrings
-    definition: str
-    preferred_label: str
+# TODO: define if collections are lists or sets
 
 
-company_classification = OrganisationClassification(
-    definition="A business is an organization that produces and sells goods or services.",
-    preferred_label="Company.",
+@strawberry.schema_directive(
+    # NOTE: Using the directive in a location not defined here silently omits
+    # the directive instead of failing loudly.
+    locations=[
+        Location.FIELD_DEFINITION,
+        Location.OBJECT,
+    ],
+    description="TODO.",
 )
-governmental_authority_classification = OrganisationClassification(
-    definition="Governmental administrative unit that administers legislation or administration of a particular area.",
-    preferred_label="Governmental authority.",
+class JSONLD:
+    """TODO
+
+    https://strawberry.rocks/docs/types/schema-directives.
+    """
+
+    type: str  # TODO: URL?
+
+
+class JSONLDExtension(SchemaExtension):
+    async def resolve(
+        self,
+        _next: Callable,
+        root: Any,
+        info: GraphQLResolveInfo,
+        *args: str,
+        **kwargs: Any,
+    ) -> AwaitableOrValue[object]:
+        value = await await_maybe(_next(root, info, *args, **kwargs))
+        print("===")
+        print("root", root)
+        print("info", info)
+        print("value", value)
+        print(info.field_nodes[0].to_dict())
+        for directive in info.field_nodes[0].directives:
+            print("DIRECTIVE!!!!!!")
+            print("directive", directive)
+
+        return value
+
+    def get_results(self) -> dict:
+        document = self.execution_context.graphql_document
+        if document is None:
+            return {}
+        # self.execution_context.context["db"] = 2
+        return {}
+
+
+@strawberry.type(description="Language string.")
+class LangString:
+    lang: str
+    value: str
+
+
+@strawberry.type(
+    description="Organisation type.",
+    directives=[JSONLD(type="http://www.w3.org/ns/org#classification")],
+)
+class FormalOrganisationType:
+    definition: list[LangString]
+    preferred_label: list[LangString]
+
+
+company_type = FormalOrganisationType(
+    definition=[
+        LangString(
+            lang="en",
+            value="A business is an organization that produces and sells goods or services.",
+        ),
+        LangString(
+            lang="da",
+            value="En virksomhed er en organisation, der producerer og sælger varer eller tjenester.",
+        ),
+    ],
+    preferred_label=[
+        LangString(lang="en", value="Company"),
+        LangString(lang="da", value="Virksomhed"),
+    ],
+)
+municipality_type = FormalOrganisationType(
+    definition=[
+        LangString(
+            lang="en",
+            value="A municipality is a local administrative unit within a geographically defined area.",
+        ),
+        LangString(
+            lang="da",
+            value="En kommune er en lokal administrativ enhed inden for et geografisk afgrænset område.",
+        ),
+    ],
+    preferred_label=[
+        LangString(lang="en", value="Municipality"),
+        LangString(lang="da", value="Kommune"),
+    ],
+)
+public_authority_type = FormalOrganisationType(
+    definition=[
+        LangString(
+            lang="en",
+            value="A public authority is a public administrative unit that has a law enforcement function within the framework of a state, a state, a region or a municipality, and which is not a parliamentary assembly.",
+        ),
+        LangString(
+            lang="da",
+            value="En offentlig myndighed er et offentlig forvaltningsenhed, der har en lovudøvende funktion inden for rammerne af en stat, en delstat, en region eller en kommune, og som ikke er en parlamentarisk forsamling.",
+        ),
+    ],
+    preferred_label=[
+        LangString(lang="en", value="Public authority"),
+        LangString(lang="da", value="Offentlig myndighed"),
+    ],
 )
 
 
 @strawberry.type(description="Organisation.")
-class Organisation:
+class FormalOrganisation:
     id: UUID
-    user_key: str | None
-    name: str | None
+    user_friendly_key: str | None
+    preferred_label: str | None
 
-    # topenhed_id: strawberry.Private[UUID | None]
     company_id: strawberry.Private[UUID | None]
-    governmental_authority_id: strawberry.Private[UUID | None]
+    public_authority_id: strawberry.Private[UUID | None]
+    # topenhed_id: strawberry.Private[UUID | None]
 
-    @strawberry.field(description="Organisation's organisational units.")
+    @strawberry.field(description="Shortcut for the public authority's code.")
     @staticmethod
-    async def organisational_units(
-        root: "OrganisationalUnit",
+    async def authority_code(
+        root: "FormalOrganisation",
         info: strawberry.Info,
-    ) -> list["OrganisationalUnit"]:
-        # Select organisational units with this organisation
-        session: AsyncSession = info.context["session"]
-        statement = select(db.Organisationenhed.id).where(
-            db.Organisationenhed.organisation_id == root.id
-        )
-        ids = list((await session.scalars(statement)).all())
-        return await get_organisational_units(info=info, ids=ids)
+    ) -> str | None:
+        public_authority = await root.public_authority(root=root, info=info)
+        if public_authority is None:
+            return None
+        return public_authority.authority_code
+
+    @strawberry.field(description="Organisation's company.")
+    @staticmethod
+    async def company(
+        root: "FormalOrganisation",
+        info: strawberry.Info,
+    ) -> "Company | None":
+        if root.company_id is None:
+            return None
+        return one(await get_companies(info=info, ids=[root.company_id]))
+
+    @strawberry.field(description="Shortcut for the company's CVR-number.")
+    @staticmethod
+    async def registered_business_code(
+        root: "FormalOrganisation",
+        info: strawberry.Info,
+    ) -> str | None:
+        company = await root.company(root=root, info=info)
+        if company is None:
+            return None
+        return company.registered_business_code
 
     @strawberry.field(description="Organisation's organisational units.")
     @staticmethod
     async def classifications(
-        root: "Organisation",
-    ) -> list[OrganisationClassification]:
+        root: "FormalOrganisation",
+        info: strawberry.Info,
+    ) -> list[FormalOrganisationType]:
         classifications = []
-        if root.company_id is not None:
-            classifications.append(company_classification)
-        if root.governmental_authority_id is not None:
-            classifications.append(governmental_authority_classification)
+
+        # The company classification not only requires an associated company,
+        # but also that it has a non-null CVR-number.
+        if await root.registered_business_code(root=root, info=info):
+            classifications.append(company_type)
+
+        # The public authority classification not only requires an associated
+        # public authority, but also that it has a non-null authority code.
+        if authority_code := await root.authority_code(root=root, info=info):
+            classifications.append(public_authority_type)
+            if 101 <= int(authority_code) <= 860:
+                classifications.append(municipality_type)
+
         return classifications
+
+    @strawberry.field(description="Organisation's organisational units.")
+    @staticmethod
+    async def organisational_units(
+        root: "FormalOrganisation",
+        info: strawberry.Info,
+    ) -> list["OrganisationalUnit"]:
+        session: AsyncSession = info.context["session"]
+        query = select(db.Organisationenhed.id).where(
+            db.Organisationenhed.organisation_id == root.id
+        )
+        ids = list((await session.scalars(query)).all())
+        return await get_organisational_units(info=info, ids=ids)
+
+    @strawberry.field(description="Organisation's public authority.")
+    @staticmethod
+    async def public_authority(
+        root: "FormalOrganisation",
+        info: strawberry.Info,
+    ) -> "PublicAuthority | None":
+        if root.public_authority_id is None:
+            return None
+        return one(
+            await get_public_authorities(info=info, ids=[root.public_authority_id])
+        )
 
 
 @strawberry.type(description="Organisational unit.")
 class OrganisationalUnit:
     id: UUID
-    user_key: str | None
-    name: str | None
+    user_friendly_key: str | None
+    preferred_label: str | None
 
     organisation_id: strawberry.Private[UUID | None]
     parent_id: strawberry.Private[UUID | None]
 
-    @strawberry.field(description="Unit's organisation.")
+    @strawberry.field(description="Unit's children units.")
+    @staticmethod
+    async def children(
+        root: "OrganisationalUnit",
+        info: strawberry.Info,
+    ) -> list["OrganisationalUnit"]:
+        session: AsyncSession = info.context["session"]
+        query = select(db.Organisationenhed.id).where(
+            db.Organisationenhed.overordnetenhed_id == root.id
+        )
+        ids = list((await session.scalars(query)).all())
+        return await get_organisational_units(info=info, ids=ids)
+
+    @strawberry.field(description="Unit's formal organisation.")
     @staticmethod
     async def organisation(
         root: "OrganisationalUnit",
         info: strawberry.Info,
-    ) -> Organisation | None:
+    ) -> FormalOrganisation | None:
         if root.organisation_id is None:
             return None
-        return only(await get_organisations(info=info, ids=[root.organisation_id]))
+        return one(await get_organisations(info=info, ids=[root.organisation_id]))
 
     @strawberry.field(description="Unit's parent unit.")
     @staticmethod
@@ -93,44 +263,90 @@ class OrganisationalUnit:
     ) -> "OrganisationalUnit | None":
         if root.parent_id is None:
             return None
-        return only(await get_organisational_units(info=info, ids=[root.parent_id]))
+        return one(await get_organisational_units(info=info, ids=[root.parent_id]))
 
-    @strawberry.field(description="Unit's children units.")
+
+@strawberry.type(description="Company.")
+class Company:
+    id: UUID
+    registered_business_code: str | None
+
+    @strawberry.field(description="Company's formal organisations.")
     @staticmethod
-    async def children(
-        root: "OrganisationalUnit",
+    async def organisations(
+        root: "Company",
         info: strawberry.Info,
-    ) -> list["OrganisationalUnit"]:
-        # Select organisational units which have this unit as parent
+    ) -> list[FormalOrganisation]:
         session: AsyncSession = info.context["session"]
-        statement = select(db.Organisationenhed.id).where(
-            db.Organisationenhed.overordnetenhed_id == root.id
+        query = select(db.Organisation.id).where(
+            db.Organisation.virksomhed_id == root.id
         )
-        ids = list((await session.scalars(statement)).all())
-        return await get_organisational_units(info=info, ids=ids)
+        ids = list((await session.scalars(query)).all())
+        return await get_organisations(info=info, ids=ids)
+
+
+@strawberry.type(description="Public authority.")
+class PublicAuthority:
+    id: UUID
+    authority_code: str | None
+
+    @strawberry.field(description="Public authority's formal organisations.")
+    @staticmethod
+    async def organisations(
+        root: "PublicAuthority",
+        info: strawberry.Info,
+    ) -> list[FormalOrganisation]:
+        session: AsyncSession = info.context["session"]
+        query = select(db.Organisation.id).where(
+            db.Organisation.myndighed_id == root.id
+        )
+        ids = list((await session.scalars(query)).all())
+        return await get_organisations(info=info, ids=ids)
 
 
 async def get_organisations(
     info: strawberry.Info,
     ids: list[UUID] | None = None,
-) -> list[Organisation]:
-    # Select all organisations if no filter is applied
-    if ids is None:
-        session: AsyncSession = info.context["session"]
-        statement = select(db.Organisation.id)
-        ids = list((await session.scalars(statement)).all())
+    preferred_labels: list[str] | None = None,
+    registered_business_codes: list[str] | None = None,
+    public_authority_codes: list[str] | None = None,
+) -> list[FormalOrganisation]:
+    # Filter
+    query = select(db.Organisation.id)
+    if ids is not None:
+        query = query.where(db.Organisation.id.in_(ids))
+    if preferred_labels is not None:
+        query = query.where(db.Organisation.organisationsnavn.in_(preferred_labels))
+    if registered_business_codes is not None:
+        query = query.where(
+            db.Organisation.virksomhed_id.in_(
+                select(db.Virksomhed.id).where(
+                    db.Virksomhed.cvr_nummer.in_(registered_business_codes)
+                )
+            )
+        )
+    if public_authority_codes is not None:
+        query = query.where(
+            db.Organisation.myndighed_id.in_(
+                select(db.Myndighed.id).where(
+                    db.Myndighed.myndighedskode.in_(public_authority_codes)
+                )
+            )
+        )
+    session: AsyncSession = info.context["session"]
+    ids = list((await session.scalars(query)).all())
 
     # Fetch selected IDs from database (through dataloader)
     dataloaders: Dataloaders = info.context["dataloaders"]
     results = await dataloaders.organisations.load_many(ids)
     # Convert database objects to GraphQL types
     return [
-        Organisation(
+        FormalOrganisation(
             id=r.id,
-            user_key=r.brugervendtnoegle,
-            name=r.organisationsnavn,
+            user_friendly_key=r.brugervendtnoegle,
+            preferred_label=r.organisationsnavn,
             company_id=r.virksomhed_id,
-            governmental_authority_id=r.myndighed_id,
+            public_authority_id=r.myndighed_id,
         )
         for r in results
         if r is not None
@@ -140,12 +356,16 @@ async def get_organisations(
 async def get_organisational_units(
     info: strawberry.Info,
     ids: list[UUID] | None = None,
+    preferred_labels: list[str] | None = None,
 ) -> list[OrganisationalUnit]:
-    # Select all organisational units if no filter is applied
-    if ids is None:
-        session: AsyncSession = info.context["session"]
-        statement = select(db.Organisationenhed.id)
-        ids = list((await session.scalars(statement)).all())
+    # Filter
+    query = select(db.Organisationenhed.id)
+    if ids is not None:
+        query = query.where(db.Organisationenhed.id.in_(ids))
+    if preferred_labels is not None:
+        query = query.where(db.Organisationenhed.enhedsnavn.in_(preferred_labels))
+    session: AsyncSession = info.context["session"]
+    ids = list((await session.scalars(query)).all())
 
     # Fetch selected IDs from database (through dataloader)
     dataloaders: Dataloaders = info.context["dataloaders"]
@@ -154,8 +374,8 @@ async def get_organisational_units(
     return [
         OrganisationalUnit(
             id=r.id,
-            user_key=r.brugervendtnoegle,
-            name=r.enhedsnavn,
+            user_friendly_key=r.brugervendtnoegle,
+            preferred_label=r.enhedsnavn,
             organisation_id=r.organisation_id,
             parent_id=r.overordnetenhed_id,
         )
@@ -164,15 +384,79 @@ async def get_organisational_units(
     ]
 
 
+async def get_public_authorities(
+    info: strawberry.Info,
+    ids: list[UUID] | None = None,
+    authority_codes: list[str] | None = None,
+) -> list[PublicAuthority]:
+    # Filter
+    query = select(db.Myndighed.id)
+    if ids is not None:
+        query = query.where(db.Myndighed.id.in_(ids))
+    if authority_codes is not None:
+        query = query.where(db.Myndighed.myndighedskode.in_(authority_codes))
+    session: AsyncSession = info.context["session"]
+    ids = list((await session.scalars(query)).all())
+
+    # Fetch selected IDs from database (through dataloader)
+    dataloaders: Dataloaders = info.context["dataloaders"]
+    results = await dataloaders.public_authorities.load_many(ids)
+    # Convert database objects to GraphQL types
+    return [
+        PublicAuthority(
+            id=r.id,
+            authority_code=r.myndighedskode,
+        )
+        for r in results
+        if r is not None
+    ]
+
+
+async def get_companies(
+    info: strawberry.Info,
+    ids: list[UUID] | None = None,
+    registered_business_codes: list[str] | None = None,
+) -> list[Company]:
+    # Filter
+    query = select(db.Virksomhed.id)
+    if ids is not None:
+        query = query.where(db.Virksomhed.id.in_(ids))
+    if registered_business_codes is not None:
+        query = query.where(db.Virksomhed.cvr_nummer.in_(registered_business_codes))
+    session: AsyncSession = info.context["session"]
+    ids = list((await session.scalars(query)).all())
+
+    # Fetch selected IDs from database (through dataloader)
+    dataloaders: Dataloaders = info.context["dataloaders"]
+    results = await dataloaders.companies.load_many(ids)
+    # Convert database objects to GraphQL types
+    return [
+        Company(
+            id=r.id,
+            registered_business_code=r.cvr_nummer,
+        )
+        for r in results
+        if r is not None
+    ]
+
+
 @strawberry.type
 class Query:
-    organisations: list[Organisation] = strawberry.field(
-        resolver=get_organisations,
-        description="Get organisations.",
+    companies: list[Company] = strawberry.field(
+        resolver=get_companies,
+        description="Get companies.",
     )
     organisational_units: list[OrganisationalUnit] = strawberry.field(
         resolver=get_organisational_units,
         description="Get organisational units.",
+    )
+    organisations: list[FormalOrganisation] = strawberry.field(
+        resolver=get_organisations,
+        description="Get organisations.",
+    )
+    public_authorities: list[PublicAuthority] = strawberry.field(
+        resolver=get_public_authorities,
+        description="Get public authorities.",
     )
 
 
@@ -190,12 +474,18 @@ class Mutation:
         # Load data anew
         session.add_all(
             itertools.chain(
+                data.myndighed(),
                 data.organisation(),
                 data.organisationenhed(),
+                data.virksomhed(),
             )
         )
         await session.commit()
         return "OK"
 
 
-schema = strawberry.Schema(query=Query, mutation=Mutation)
+schema = strawberry.Schema(
+    query=Query,
+    mutation=Mutation,
+    extensions=[JSONLDExtension],
+)

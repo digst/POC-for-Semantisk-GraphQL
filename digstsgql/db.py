@@ -96,6 +96,13 @@ class Base(DeclarativeBase):
     """Base class used for declarative class definitions."""
 
 
+class Myndighed(Base):
+    __tablename__ = "myndighed"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    myndighedskode: Mapped[str | None]
+
+
 class Organisation(Base):
     __tablename__ = "organisation"
 
@@ -103,11 +110,13 @@ class Organisation(Base):
     brugervendtnoegle: Mapped[str | None]
     organisationsnavn: Mapped[str | None]
 
-    # TODO: these should be ForeignKeys, but the related models are not part of
-    # phase 1.
+    myndighed_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("myndighed.id", initially="DEFERRED")
+    )
+    virksomhed_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("virksomhed.id", initially="DEFERRED")
+    )
     # topenhed_id: Mapped[UUID | None]
-    virksomhed_id: Mapped[UUID | None]
-    myndighed_id: Mapped[UUID | None]
 
 
 class Organisationenhed(Base):
@@ -121,3 +130,10 @@ class Organisationenhed(Base):
     overordnetenhed_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("organisationenhed.id")
     )
+
+
+class Virksomhed(Base):
+    __tablename__ = "virksomhed"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    cvr_nummer: Mapped[str | None]
