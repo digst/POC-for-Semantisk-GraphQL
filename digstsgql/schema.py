@@ -49,15 +49,15 @@ class JSONLDExtension(SchemaExtension):
         **kwargs: Any,
     ) -> AwaitableOrValue[object]:
         value = await await_maybe(_next(root, info, *args, **kwargs))
-        print("===")
-        print("root", root)
-        print("info", info)
-        print("value", value)
-        print(info.field_nodes[0].to_dict())
-        for directive in info.field_nodes[0].directives:
-            print("DIRECTIVE!!!!!!")
-            print("directive", directive)
-
+        # print("===")
+        # print("root", root)
+        # print("info", info)
+        # print("value", value)
+        # print(info.field_nodes[0].to_dict())
+        # for directive in info.field_nodes[0].directives:
+        #     print("DIRECTIVE!!!!!!")
+        #     print("directive", directive)
+        #
         return value
 
     def get_results(self) -> dict:
