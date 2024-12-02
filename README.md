@@ -7,10 +7,10 @@ Semantic GraphQL project for Digitaliseringsstyrelsen.
 
 ```sh
 docker compose up -d --build
-firefox http://localhost:8000/graphql/
+firefox http://localhost:8000/graphql
 ```
 
-Make sure to load data into the database:
+Load data into the database:
 
 ```graphql
 mutation {
@@ -20,10 +20,7 @@ mutation {
 
 # Semantic GraphQL
 
-We are not allowed to add a `@context` entry to the response map as per the
-[GraphQL spec](https://spec.graphql.org/draft/#sec-Response-Format). Perhaps we
-could add it as HTTP header?
-<https://www.w3.org/TR/json-ld11/#interpreting-json-as-json-ld>
+TODO
 
 ## Configuration
 

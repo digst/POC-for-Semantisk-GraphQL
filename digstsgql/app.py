@@ -72,6 +72,12 @@ def create_app():
     settings = Settings()
     sessionmaker = db.create_async_sessionmaker(settings.database.url)
 
+    # TODO: We are not allowed to add a `@context` entry to the response map as
+    # per the GraphQL spec:
+    # https://spec.graphql.org/draft/#sec-Response-Format
+    # Perhaps we could add it as HTTP header?
+    # https://www.w3.org/TR/json-ld11/#interpreting-json-as-json-ld
+
     app = Starlette(
         middleware=[
             Middleware(SessionMiddleware, sessionmaker=sessionmaker),
