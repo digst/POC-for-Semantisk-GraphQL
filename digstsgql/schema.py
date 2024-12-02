@@ -28,9 +28,11 @@ from digstsgql.dataloaders import Dataloaders
         Location.FIELD_DEFINITION,
         Location.OBJECT,
     ],
+    # Force lowercase to avoid auto-camelCasing to "rDF"
+    name="rdf",
     description="TODO.",
 )
-class JSONLD:
+class RDF:
     """TODO
 
     https://strawberry.rocks/docs/types/schema-directives.
@@ -76,7 +78,7 @@ class LangString:
 
 @strawberry.type(
     description="Organisation type.",
-    directives=[JSONLD(type="http://www.w3.org/ns/org#classification")],
+    directives=[RDF(type="http://www.w3.org/ns/org#classification")],
 )
 class FormalOrganisationType:
     definitions: strawberry.Private[list[LangString]]
