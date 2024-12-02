@@ -68,10 +68,10 @@ class JSONLDExtension(SchemaExtension):
         return {}
 
 
-@strawberry.type(description="Language string.")
+@strawberry.type(description="Language-tagged string value.")
 class LangString:
-    lang: str
-    value: str
+    lang: str = strawberry.field(description="Language tag.")
+    value: str = strawberry.field(description="Literal.")
 
 
 @strawberry.type(
@@ -79,12 +79,32 @@ class LangString:
     directives=[JSONLD(type="http://www.w3.org/ns/org#classification")],
 )
 class FormalOrganisationType:
-    definition: list[LangString]
-    preferred_label: list[LangString]
+    definitions: strawberry.Private[list[LangString]]
+    preferred_labels: strawberry.Private[list[LangString]]
+
+    @strawberry.field(description="Definition.")
+    @staticmethod
+    async def definition(
+        root: "FormalOrganisationType",
+        languages: list[str] | None = None,
+    ) -> list[LangString]:
+        if languages is None:
+            return root.definitions
+        return [x for x in root.definitions if x.lang in languages]
+
+    @strawberry.field(description="Preferred label.")
+    @staticmethod
+    async def preferred_label(
+        root: "FormalOrganisationType",
+        languages: list[str] | None = None,
+    ) -> list[LangString]:
+        if languages is None:
+            return root.preferred_labels
+        return [x for x in root.preferred_labels if x.lang in languages]
 
 
 company_type = FormalOrganisationType(
-    definition=[
+    definitions=[
         LangString(
             lang="en",
             value="A business is an organization that produces and sells goods or services.",
@@ -94,13 +114,13 @@ company_type = FormalOrganisationType(
             value="En virksomhed er en organisation, der producerer og sælger varer eller tjenester.",
         ),
     ],
-    preferred_label=[
+    preferred_labels=[
         LangString(lang="en", value="Company"),
         LangString(lang="da", value="Virksomhed"),
     ],
 )
 municipality_type = FormalOrganisationType(
-    definition=[
+    definitions=[
         LangString(
             lang="en",
             value="A municipality is a local administrative unit within a geographically defined area.",
@@ -110,13 +130,13 @@ municipality_type = FormalOrganisationType(
             value="En kommune er en lokal administrativ enhed inden for et geografisk afgrænset område.",
         ),
     ],
-    preferred_label=[
+    preferred_labels=[
         LangString(lang="en", value="Municipality"),
         LangString(lang="da", value="Kommune"),
     ],
 )
 public_authority_type = FormalOrganisationType(
-    definition=[
+    definitions=[
         LangString(
             lang="en",
             value="A public authority is a public administrative unit that has a law enforcement function within the framework of a state, a state, a region or a municipality, and which is not a parliamentary assembly.",
@@ -126,7 +146,7 @@ public_authority_type = FormalOrganisationType(
             value="En offentlig myndighed er et offentlig forvaltningsenhed, der har en lovudøvende funktion inden for rammerne af en stat, en delstat, en region eller en kommune, og som ikke er en parlamentarisk forsamling.",
         ),
     ],
-    preferred_label=[
+    preferred_labels=[
         LangString(lang="en", value="Public authority"),
         LangString(lang="da", value="Offentlig myndighed"),
     ],
