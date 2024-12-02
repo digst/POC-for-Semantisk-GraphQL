@@ -7,10 +7,10 @@ Semantic GraphQL project for Digitaliseringsstyrelsen.
 
 ```sh
 docker compose up -d --build
-firefox http://localhost:8000/graphql
 ```
 
-Load data into the database:
+Afterwards, the GraphiQL web IDE will be available at
+<http://localhost:8000/graphql>. Use it to load data into the database:
 
 ```graphql
 mutation {
@@ -20,7 +20,10 @@ mutation {
 
 # Semantic GraphQL
 
-TODO
+TODO: how to access jsonld context?
+
+The GraphQL schema is available in GraphQL Schema Definition Language (SDL) at
+<http://localhost:8000/graphql/schema.graphql>.
 
 ## Configuration
 
