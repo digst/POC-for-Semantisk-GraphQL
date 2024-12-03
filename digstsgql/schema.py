@@ -13,7 +13,8 @@ from digstsgql.dataloaders import Dataloaders
 from digstsgql.jsonld import JSONLD
 from digstsgql.jsonld import JSONLDExtension
 
-# TODO: proper RDF on relationships??
+# TODO: should _id be the objects UUID or e.g. `fot:Company`?
+# TODO: what about _type?
 
 
 @strawberry.type(
@@ -40,7 +41,12 @@ class FormalOrganisationType:
 
     @strawberry.field(
         description="Definition.",
-        directives=[JSONLD(id="http://www.w3.org/2004/02/skos/core#definition")],
+        directives=[
+            JSONLD(
+                id="http://www.w3.org/2004/02/skos/core#definition",
+                container="@set",
+            )
+        ],
     )
     @staticmethod
     async def definition(
@@ -53,7 +59,12 @@ class FormalOrganisationType:
 
     @strawberry.field(
         description="Preferred label.",
-        directives=[JSONLD(id="http://www.w3.org/2004/02/skos/core#prefLabel")],
+        directives=[
+            JSONLD(
+                id="http://www.w3.org/2004/02/skos/core#prefLabel",
+                container="@set",
+            ),
+        ],
     )
     @staticmethod
     async def preferred_label(
@@ -179,7 +190,7 @@ class FormalOrganisation:
         return result.cvr_nummer
 
     @strawberry.field(
-        description="Organisation's organisational units.",
+        description="Organisation's classifications.",
         directives=[
             JSONLD(
                 id="http://www.w3.org/ns/org#classification",
@@ -213,7 +224,7 @@ class FormalOrganisation:
         description="Organisation's organisational units.",
         directives=[
             JSONLD(
-                id="http://www.w3.org/ns/org#OrganizationalUnit",
+                id="https://data.gov.dk/model/core/organisation/extension/hasUpperUnit",
                 type="@id",
                 container="@set",
             )
@@ -256,7 +267,7 @@ class OrganisationalUnit:
         description="Unit's children units.",
         directives=[
             JSONLD(
-                id="http://www.w3.org/ns/org#OrganizationalUnit",
+                id="http://www.w3.org/ns/org#hasSubOrganization",
                 type="@id",
                 container="@set",
             )
@@ -276,12 +287,7 @@ class OrganisationalUnit:
 
     @strawberry.field(
         description="Unit's formal organisation.",
-        directives=[
-            JSONLD(
-                id="https://data.gov.dk/model/core/organisation/extension/FormalOrganizationType",
-                type="@id",
-            )
-        ],
+        directives=[JSONLD(id="http://www.w3.org/ns/org#unitOf", type="@id")],
     )
     @staticmethod
     async def organisation(
@@ -296,7 +302,7 @@ class OrganisationalUnit:
         description="Unit's parent unit.",
         directives=[
             JSONLD(
-                id="http://www.w3.org/ns/org#OrganizationalUnit",
+                id="http://www.w3.org/ns/org#subOrganizationOf",
                 type="@id",
             )
         ],
@@ -401,14 +407,20 @@ class Query:
         resolver=get_organisational_units,
         description="Get organisational units.",
         directives=[
-            JSONLD(id="http://www.w3.org/ns/org#OrganizationalUnit", container="@set")
+            JSONLD(
+                id="http://www.w3.org/ns/org#OrganizationalUnit",
+                container="@set",
+            )
         ],
     )
     organisations: list[FormalOrganisation] = strawberry.field(
         resolver=get_organisations,
         description="Get organisations.",
         directives=[
-            JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", container="@set")
+            JSONLD(
+                id="http://www.w3.org/ns/org#FormalOrganization",
+                container="@set",
+            )
         ],
     )
 
