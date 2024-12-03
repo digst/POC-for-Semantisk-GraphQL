@@ -45,11 +45,12 @@ class CustomGraphQL(GraphQL):
     async def get_context(
         self, request: Request | WebSocket, response: Response | WebSocket
     ) -> dict:
-        """The Strawberry context is available from the resolvers."""
+        """The Strawberry context is available from resolvers and extensions."""
         session = request.scope["database_session"]
         return {
             "request": request,
             "response": response,
+            "schema": self.schema,
             # A single database session ensures a consistent view across the
             # GraphQL operation. The session is started by the Starlette
             # SessionMiddleware.
