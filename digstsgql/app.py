@@ -11,6 +11,7 @@ from starlette.types import Receive
 from starlette.types import Scope
 from starlette.types import Send
 from starlette.websockets import WebSocket
+from starlette_context.middleware import RawContextMiddleware
 from strawberry.asgi import GraphQL
 from strawberry.printer import print_schema
 
@@ -80,6 +81,7 @@ def create_app():
 
     app = Starlette(
         middleware=[
+            Middleware(RawContextMiddleware),
             Middleware(SessionMiddleware, sessionmaker=sessionmaker),
         ],
         routes=[

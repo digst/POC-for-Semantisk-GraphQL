@@ -9,16 +9,16 @@ from more_itertools import one
 from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette_context import context as starlette_context
 from strawberry.extensions import SchemaExtension
 from strawberry.schema_directive import Location
+from strawberry.utils.await_maybe import AsyncIteratorOrIterator
 from strawberry.utils.await_maybe import AwaitableOrValue
 from strawberry.utils.await_maybe import await_maybe
 
 from digstsgql import data
 from digstsgql import db
 from digstsgql.dataloaders import Dataloaders
-
-# TODO: define if collections are lists or sets
 
 
 @strawberry.schema_directive(
@@ -28,20 +28,92 @@ from digstsgql.dataloaders import Dataloaders
         Location.FIELD_DEFINITION,
         Location.OBJECT,
     ],
-    # Force lowercase to avoid auto-camelCasing to "rDF"
-    name="rdf",
-    description="TODO.",
+    # Force lowercase to avoid auto-camelCasing to "jSONLD"
+    name="jsonld",
+    description="JSON-LD term.",
 )
-class RDF:
-    """TODO
+class JSONLD:
+    """JSON-LD Expanded term definition.
 
+    https://www.w3.org/TR/json-ld/#expanded-term-definition.
     https://strawberry.rocks/docs/types/schema-directives.
     """
 
-    type: str  # TODO: URL?
+    id: str
+    type: str | None = None
+    container: str | None = None
+
+    def as_dict(self) -> dict[str, str]:
+        """Convert to JSON-LD @context dict."""
+        res = {
+            "@id": self.id,
+        }
+        if self.type is not None:
+            res["@type"] = self.type
+        if self.container is not None:
+            res["@container"] = self.container
+        return res
 
 
 class JSONLDExtension(SchemaExtension):
+    """Strawberry extension which adds JSON-LD context as a GraphQL extension.
+
+    https://www.w3.org/TR/json-ld/#scoped-contexts
+    https://www.w3.org/TR/json-ld/#context-definitions
+    https://www.w3.org/TR/json-ld/#keywords
+    """
+
+    def on_execute(self) -> AsyncIteratorOrIterator[None]:  # type: ignore
+        """Instantiate empty JSON-LD context on every GraphQL execution."""
+        # NOTE: We cannot use self.execution_context due to a bug in
+        # Strawberry, so we use request-scoped starlette-context instead.
+        # https://github.com/strawberry-graphql/strawberry/issues/3571
+        starlette_context["jsonld_context"] = {}
+        yield
+
+    def _add_to_context(self, info: GraphQLResolveInfo) -> None:
+        """Add resolved field to the JSON-LD context."""
+        # `info.field_name` and `info.parent_type` is the actual field and type
+        # in the *schema*. We use these to fetch the JSONLD directive object.
+        field = schema.get_field_for_type(info.field_name, info.parent_type.name)
+        if field is None:
+            # Introspection queries fetch the `__schema` field which is not
+            # part of our schema: ignore.
+            return
+        for directive in field.directives:
+            if isinstance(directive, JSONLD):
+                field_context = directive
+                break
+        else:
+            # Set field as an opaque JSON blob if the field does not have a
+            # JSONLD directive.
+            # https://www.w3.org/TR/json-ld/#json-literals
+            field_context = JSONLD(
+                id="http://www.w3.org/1999/02/22-rdf-syntax-ns#JSON",
+                type="@json",
+            )
+
+        # `info.path` `key`s are the fields in the *query*, i.e. potentially an
+        # alias. We use these to find where to insert in the JSON-LD @context.
+        # For lists, the path key will be an integer index. We ignore these
+        # since they do not contribute a level in the JSON-LD context;
+        # Collections are typed through @container on the field instead.
+        *ancestors, node = info.path.as_list()
+        ancestors = [k for k in ancestors if not isinstance(k, int)]
+        assert not isinstance(node, int)
+
+        # Walk context to find the parent node. All ancestors are guaranteed to
+        # exist in the context because GraphQL is resolved in a breadth-first
+        # manner.
+        context: dict = starlette_context["jsonld_context"]
+        for ancestor in ancestors:
+            context = context["@context"][ancestor]
+
+        # Add this node to the parent's context, creating it if this is the
+        # first child.
+        context = context.setdefault("@context", {})
+        context[node] = field_context.as_dict()
+
     async def resolve(
         self,
         _next: Callable,
@@ -50,27 +122,29 @@ class JSONLDExtension(SchemaExtension):
         *args: str,
         **kwargs: Any,
     ) -> AwaitableOrValue[object]:
-        value = await await_maybe(_next(root, info, *args, **kwargs))
-        # print("===")
-        # print("root", root)
-        # print("info", info)
-        # print("value", value)
-        # print(info.field_nodes[0].to_dict())
-        # for directive in info.field_nodes[0].directives:
-        #     print("DIRECTIVE!!!!!!")
-        #     print("directive", directive)
-        #
-        return value
+        """Called for every resolver."""
+        self._add_to_context(info)
+        return await await_maybe(_next(root, info, *args, **kwargs))
 
     def get_results(self) -> dict:
-        document = self.execution_context.graphql_document
-        if document is None:
-            return {}
-        # self.execution_context.context["db"] = 2
-        return {}
+        """Return JSON-LD context as a GraphQL extension under the `@context` key."""
+        # A GraphQL response is always nested under the `data` key. The GraphQL
+        # Query root is not part of the path in Strawberry, so it was ignored
+        # when building the JSON-LD context dict above. Therefore, everything
+        # is correct when the built context is nested under `data`.
+        return {
+            "@context": {
+                "data": {
+                    "@id": "https://example.org/#TODO",
+                    **starlette_context["jsonld_context"],
+                },
+            },
+        }
 
 
-@strawberry.type(description="Language-tagged string value.")
+@strawberry.type(
+    description="Language-tagged string value.",
+)
 class LangString:
     lang: str = strawberry.field(description="Language tag.")
     value: str = strawberry.field(description="Literal.")
@@ -78,13 +152,21 @@ class LangString:
 
 @strawberry.type(
     description="Organisation type.",
-    directives=[RDF(type="http://www.w3.org/ns/org#classification")],
+    directives=[
+        JSONLD(
+            id="https://data.gov.dk/model/core/organisation/extension/FormalOrganizationType",
+            type="@id",
+        )
+    ],
 )
 class FormalOrganisationType:
     definitions: strawberry.Private[list[LangString]]
     preferred_labels: strawberry.Private[list[LangString]]
 
-    @strawberry.field(description="Definition.")
+    @strawberry.field(
+        description="Definition.",
+        directives=[JSONLD(id="http://www.w3.org/2004/02/skos/core#definition")],
+    )
     @staticmethod
     async def definition(
         root: "FormalOrganisationType",
@@ -94,7 +176,10 @@ class FormalOrganisationType:
             return root.definitions
         return [x for x in root.definitions if x.lang in languages]
 
-    @strawberry.field(description="Preferred label.")
+    @strawberry.field(
+        description="Preferred label.",
+        directives=[JSONLD(id="http://www.w3.org/2004/02/skos/core#prefLabel")],
+    )
     @staticmethod
     async def preferred_label(
         root: "FormalOrganisationType",
@@ -155,10 +240,19 @@ public_authority_type = FormalOrganisationType(
 )
 
 
-@strawberry.type(description="Organisation.")
+@strawberry.type(
+    description="Organisation.",
+    directives=[JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", type="@id")],
+)
 class FormalOrganisation:
     id: UUID
-    user_friendly_key: str | None
+    user_friendly_key: str | None = strawberry.field(
+        directives=[
+            JSONLD(
+                id="https://data.gov.dk/model/core/organisation/extension/userFriendlyKey"
+            )
+        ],
+    )
     preferred_label: str | None
 
     company_id: strawberry.Private[UUID | None]
@@ -279,6 +373,7 @@ async def get_organisations(
     registered_business_codes: list[str] | None = None,
     public_authority_codes: list[str] | None = None,
 ) -> list[FormalOrganisation]:
+    """Organisation resolver."""
     # Filter
     query = select(db.Organisation.id)
     if ids is not None:
@@ -326,6 +421,7 @@ async def get_organisational_units(
     ids: list[UUID] | None = None,
     preferred_labels: list[str] | None = None,
 ) -> list[OrganisationalUnit]:
+    """Organisational Unit resolver."""
     # Filter
     query = select(db.Organisationenhed.id)
     if ids is not None:
@@ -354,6 +450,8 @@ async def get_organisational_units(
 
 @strawberry.type
 class Query:
+    """The entrypoint for read operations."""
+
     organisational_units: list[OrganisationalUnit] = strawberry.field(
         resolver=get_organisational_units,
         description="Get organisational units.",
@@ -361,11 +459,16 @@ class Query:
     organisations: list[FormalOrganisation] = strawberry.field(
         resolver=get_organisations,
         description="Get organisations.",
+        directives=[
+            JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", container="@set")
+        ],
     )
 
 
 @strawberry.type
 class Mutation:
+    """The entrypoint for write operations."""
+
     @strawberry.mutation(
         description="Load fixture-data into database.",
     )
