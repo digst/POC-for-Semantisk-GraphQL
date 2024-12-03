@@ -124,11 +124,15 @@ class JSONLDExtension(SchemaExtension):
         # Query root is not part of the path in Strawberry, so it was ignored
         # when building the JSON-LD context dict above. Therefore, everything
         # is correct when the built context is nested under `data`.
+        try:
+            context = starlette_context["jsonld_context"]
+        except KeyError:
+            return {}
         return {
             "@context": {
                 "data": {
                     "@id": "https://example.org/#TODO",
-                    **starlette_context["jsonld_context"],
+                    **context,
                 },
             },
         }
