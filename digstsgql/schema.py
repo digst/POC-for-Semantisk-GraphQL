@@ -120,7 +120,7 @@ public_authority_type = FormalOrganisationType(
     directives=[JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", type="@id")],
 )
 class FormalOrganisation:
-    id: UUID  # TODO
+    id: strawberry.ID  # TODO
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
@@ -228,8 +228,8 @@ class FormalOrganisation:
         query = select(db.Organisationenhed.id).where(
             db.Organisationenhed.organisation_id == root.id
         )
-        ids = list((await session.scalars(query)).all())
-        return await get_organisational_units(info=info, ids=ids)
+        uuids = list((await session.scalars(query)).all())
+        return await get_organisational_units(info=info, ids=uuids)
 
 
 @strawberry.type(
@@ -237,7 +237,7 @@ class FormalOrganisation:
     directives=[JSONLD(id="http://www.w3.org/ns/org#OrganizationalUnit", type="@id")],
 )
 class OrganisationalUnit:
-    id: UUID  # TODO
+    id: strawberry.ID  # TODO
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
@@ -271,8 +271,8 @@ class OrganisationalUnit:
         query = select(db.Organisationenhed.id).where(
             db.Organisationenhed.overordnetenhed_id == root.id
         )
-        ids = list((await session.scalars(query)).all())
-        return await get_organisational_units(info=info, ids=ids)
+        uuids = list((await session.scalars(query)).all())
+        return await get_organisational_units(info=info, ids=uuids)
 
     @strawberry.field(
         description="Unit's formal organisation.",
@@ -342,15 +342,15 @@ async def get_organisations(
             )
         )
     session: AsyncSession = info.context["session"]
-    ids = list((await session.scalars(query)).all())
+    uuids = list((await session.scalars(query)).all())
 
     # Fetch selected IDs from database (through dataloader)
     dataloaders: Dataloaders = info.context["dataloaders"]
-    results = await dataloaders.organisations.load_many(ids)
+    results = await dataloaders.organisations.load_many(uuids)
     # Convert database objects to GraphQL types
     return [
         FormalOrganisation(
-            id=r.id,
+            id=strawberry.ID(str(r.id)),
             user_friendly_key=r.brugervendtnoegle,
             preferred_label=r.organisationsnavn,
             company_id=r.virksomhed_id,
@@ -374,15 +374,15 @@ async def get_organisational_units(
     if preferred_labels is not None:
         query = query.where(db.Organisationenhed.enhedsnavn.in_(preferred_labels))
     session: AsyncSession = info.context["session"]
-    ids = list((await session.scalars(query)).all())
+    uuids = list((await session.scalars(query)).all())
 
     # Fetch selected IDs from database (through dataloader)
     dataloaders: Dataloaders = info.context["dataloaders"]
-    results = await dataloaders.organisational_units.load_many(ids)
+    results = await dataloaders.organisational_units.load_many(uuids)
     # Convert database objects to GraphQL types
     return [
         OrganisationalUnit(
-            id=r.id,
+            id=strawberry.ID(str(r.id)),
             user_friendly_key=r.brugervendtnoegle,
             preferred_label=r.enhedsnavn,
             organisation_id=r.organisation_id,
