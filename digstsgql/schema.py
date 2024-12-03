@@ -21,8 +21,8 @@ from digstsgql.jsonld import JSONLDExtension
     directives=[JSONLD(id="http://www.w3.org/1999/02/22-rdf-syntax-ns#langString")],
 )
 class LangString:
-    lang: str = strawberry.field(description="Language tag.")  # TODO
-    value: str = strawberry.field(description="Literal.")  # TODO
+    lang: str = strawberry.field(description="Language tag.")  # TODO: JSONLD
+    value: str = strawberry.field(description="Literal.")  # TODO: JSONLD
 
 
 @strawberry.type(
@@ -120,7 +120,7 @@ public_authority_type = FormalOrganisationType(
     directives=[JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", type="@id")],
 )
 class FormalOrganisation:
-    id: strawberry.ID  # TODO
+    id: strawberry.ID = strawberry.field(name="_id")  # TODO: JSONLD
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
@@ -237,7 +237,7 @@ class FormalOrganisation:
     directives=[JSONLD(id="http://www.w3.org/ns/org#OrganizationalUnit", type="@id")],
 )
 class OrganisationalUnit:
-    id: strawberry.ID  # TODO
+    id: strawberry.ID = strawberry.field(name="_id")  # TODO: JSONLD
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
