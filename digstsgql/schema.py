@@ -13,13 +13,16 @@ from digstsgql.dataloaders import Dataloaders
 from digstsgql.jsonld import JSONLD
 from digstsgql.jsonld import JSONLDExtension
 
+# TODO: proper RDF on relationships??
+
 
 @strawberry.type(
     description="Language-tagged string value.",
+    directives=[JSONLD(id="http://www.w3.org/1999/02/22-rdf-syntax-ns#langString")],
 )
 class LangString:
-    lang: str = strawberry.field(description="Language tag.")
-    value: str = strawberry.field(description="Literal.")
+    lang: str = strawberry.field(description="Language tag.")  # TODO
+    value: str = strawberry.field(description="Literal.")  # TODO
 
 
 @strawberry.type(
@@ -117,7 +120,7 @@ public_authority_type = FormalOrganisationType(
     directives=[JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", type="@id")],
 )
 class FormalOrganisation:
-    id: UUID
+    id: UUID  # TODO
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
@@ -125,13 +128,22 @@ class FormalOrganisation:
             )
         ],
     )
-    preferred_label: str | None
+    preferred_label: str | None = strawberry.field(
+        directives=[JSONLD(id="http://www.w3.org/2004/02/skos/core#prefLabel")],
+    )
 
     company_id: strawberry.Private[UUID | None]
     public_authority_id: strawberry.Private[UUID | None]
     # topenhed_id: strawberry.Private[UUID | None]
 
-    @strawberry.field(description="Organisation's public authority's code.")
+    @strawberry.field(
+        description="Organisation's public authority's code.",
+        directives=[
+            JSONLD(
+                id="https://data.gov.dk/model/core/organisation/extension/authorityCode"
+            )
+        ],
+    )
     @staticmethod
     async def authority_code(
         root: "FormalOrganisation",
@@ -145,7 +157,14 @@ class FormalOrganisation:
             return None
         return result.myndighedskode
 
-    @strawberry.field(description="Organisation's CVR-number.")
+    @strawberry.field(
+        description="Organisation's CVR-number.",
+        directives=[
+            JSONLD(
+                id="https://data.gov.dk/model/core/organisation/extension/registeredBusinessCode"
+            )
+        ],
+    )
     @staticmethod
     async def registered_business_code(
         root: "FormalOrganisation",
@@ -159,7 +178,16 @@ class FormalOrganisation:
             return None
         return result.cvr_nummer
 
-    @strawberry.field(description="Organisation's organisational units.")
+    @strawberry.field(
+        description="Organisation's organisational units.",
+        directives=[
+            JSONLD(
+                id="http://www.w3.org/ns/org#classification",
+                type="@id",
+                container="@set",
+            )
+        ],
+    )
     @staticmethod
     async def classifications(
         root: "FormalOrganisation",
@@ -181,7 +209,16 @@ class FormalOrganisation:
 
         return classifications
 
-    @strawberry.field(description="Organisation's organisational units.")
+    @strawberry.field(
+        description="Organisation's organisational units.",
+        directives=[
+            JSONLD(
+                id="http://www.w3.org/ns/org#OrganizationalUnit",
+                type="@id",
+                container="@set",
+            )
+        ],
+    )
     @staticmethod
     async def organisational_units(
         root: "FormalOrganisation",
@@ -195,16 +232,36 @@ class FormalOrganisation:
         return await get_organisational_units(info=info, ids=ids)
 
 
-@strawberry.type(description="Organisational unit.")
+@strawberry.type(
+    description="Organisational unit.",
+    directives=[JSONLD(id="http://www.w3.org/ns/org#OrganizationalUnit", type="@id")],
+)
 class OrganisationalUnit:
-    id: UUID
-    user_friendly_key: str | None
-    preferred_label: str | None
+    id: UUID  # TODO
+    user_friendly_key: str | None = strawberry.field(
+        directives=[
+            JSONLD(
+                id="https://data.gov.dk/model/core/organisation/extension/userFriendlyKey"
+            )
+        ],
+    )
+    preferred_label: str | None = strawberry.field(
+        directives=[JSONLD(id="http://www.w3.org/2004/02/skos/core#prefLabel")],
+    )
 
     organisation_id: strawberry.Private[UUID | None]
     parent_id: strawberry.Private[UUID | None]
 
-    @strawberry.field(description="Unit's children units.")
+    @strawberry.field(
+        description="Unit's children units.",
+        directives=[
+            JSONLD(
+                id="http://www.w3.org/ns/org#OrganizationalUnit",
+                type="@id",
+                container="@set",
+            )
+        ],
+    )
     @staticmethod
     async def children(
         root: "OrganisationalUnit",
@@ -217,7 +274,15 @@ class OrganisationalUnit:
         ids = list((await session.scalars(query)).all())
         return await get_organisational_units(info=info, ids=ids)
 
-    @strawberry.field(description="Unit's formal organisation.")
+    @strawberry.field(
+        description="Unit's formal organisation.",
+        directives=[
+            JSONLD(
+                id="https://data.gov.dk/model/core/organisation/extension/FormalOrganizationType",
+                type="@id",
+            )
+        ],
+    )
     @staticmethod
     async def organisation(
         root: "OrganisationalUnit",
@@ -227,7 +292,15 @@ class OrganisationalUnit:
             return None
         return one(await get_organisations(info=info, ids=[root.organisation_id]))
 
-    @strawberry.field(description="Unit's parent unit.")
+    @strawberry.field(
+        description="Unit's parent unit.",
+        directives=[
+            JSONLD(
+                id="http://www.w3.org/ns/org#OrganizationalUnit",
+                type="@id",
+            )
+        ],
+    )
     @staticmethod
     async def parent(
         root: "OrganisationalUnit",
@@ -327,6 +400,9 @@ class Query:
     organisational_units: list[OrganisationalUnit] = strawberry.field(
         resolver=get_organisational_units,
         description="Get organisational units.",
+        directives=[
+            JSONLD(id="http://www.w3.org/ns/org#OrganizationalUnit", container="@set")
+        ],
     )
     organisations: list[FormalOrganisation] = strawberry.field(
         resolver=get_organisations,
