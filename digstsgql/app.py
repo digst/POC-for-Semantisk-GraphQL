@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.responses import RedirectResponse
@@ -78,6 +79,26 @@ def create_app():
         middleware=[
             Middleware(RawContextMiddleware),
             Middleware(SessionMiddleware, sessionmaker=sessionmaker),
+            Middleware(
+                # CORS headers describe which origins are permitted to contact the server, and
+                # specify which authentication credentials (e.g. cookies or headers) should be
+                # sent. CORS is NOT a server-side security mechanism, but relies on the browser
+                # itself to enforce it.
+                # https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+                # https://www.starlette.io/middleware/#corsmiddleware
+                CORSMiddleware,
+                # Allow any website to contact the API
+                allow_origins=["*"],
+                # Allow the HTTP methods needed by GraphQL
+                allow_methods=["HEAD", "GET", "POST"],
+                # Allow JavaScript to access the following HTTP headers from requests
+                expose_headers=["Link", "Location"],
+                # Don't allow the browser to send cookies with the request. Allowing
+                # credentials is incompatible with the settings above, as the browser blocks
+                # credentialed requests if the server allows wildcard origin, methods, or
+                # headers.
+                allow_credentials=False,
+            ),
         ],
         routes=[
             Route("/", RedirectResponse("/graphql")),
