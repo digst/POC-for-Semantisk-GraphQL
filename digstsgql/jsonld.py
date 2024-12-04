@@ -1,5 +1,8 @@
+import datetime
+from decimal import Decimal
 from typing import Any
 from typing import Callable
+from uuid import UUID
 
 import strawberry
 from graphql import GraphQLResolveInfo
@@ -7,6 +10,7 @@ from starlette_context import context as starlette_context
 from strawberry import Schema
 from strawberry.extensions import SchemaExtension
 from strawberry.schema_directive import Location
+from strawberry.types.base import StrawberryOptional
 from strawberry.utils.await_maybe import AsyncIteratorOrIterator
 from strawberry.utils.await_maybe import AwaitableOrValue
 from strawberry.utils.await_maybe import await_maybe
@@ -46,6 +50,22 @@ class JSONLD:
         return res
 
 
+FALLBACK_TYPES: dict = {
+    # List of types inspired by
+    # strawberry.schema.types.scalar.DEFAULT_SCALAR_REGISTRY
+    bool: JSONLD(id="http://www.w3.org/2001/XMLSchema#boolean"),
+    float: JSONLD(id="http://www.w3.org/2001/XMLSchema#float"),
+    int: JSONLD(id="http://www.w3.org/2001/XMLSchema#integer"),
+    str: JSONLD(id="http://www.w3.org/2001/XMLSchema#string"),
+    datetime.date: JSONLD(id="http://www.w3.org/2001/XMLSchema#date"),
+    datetime.datetime: JSONLD(id="http://www.w3.org/2001/XMLSchema#dateTime"),
+    datetime.time: JSONLD(id="http://www.w3.org/2001/XMLSchema#time"),
+    Decimal: JSONLD(id="http://www.w3.org/2001/XMLSchema#decimal"),
+    UUID: JSONLD(id="http://www.w3.org/TR/sparql11-query/#func-struuid"),
+    strawberry.ID: JSONLD(id="http://www.w3.org/2001/XMLSchema#ID"),
+}
+
+
 class JSONLDExtension(SchemaExtension):
     """Strawberry extension which adds JSON-LD context as a GraphQL extension.
 
@@ -77,13 +97,21 @@ class JSONLDExtension(SchemaExtension):
                 field_context = directive
                 break
         else:
-            # Set field as an opaque JSON blob if the field does not have a
-            # JSONLD directive.
-            # https://www.w3.org/TR/json-ld/#json-literals
-            field_context = JSONLD(
-                id="http://www.w3.org/1999/02/22-rdf-syntax-ns#JSON",
-                type="@json",
-            )
+            # Fallback to simple literal types for scalar fields which do not
+            # have a JSONLD directive.
+            field_type = field.type
+            # Optional types are wrapped in StrawberryOptional
+            if isinstance(field_type, StrawberryOptional):
+                field_type = field_type.of_type
+            try:
+                field_context = FALLBACK_TYPES[field_type]
+            except KeyError:
+                # Set non-scalar fields as an opaque JSON blob
+                # https://www.w3.org/TR/json-ld/#json-literals
+                field_context = JSONLD(
+                    id="http://www.w3.org/1999/02/22-rdf-syntax-ns#JSON",
+                    type="@json",
+                )
 
         # `info.path` `key`s are the fields in the *query*, i.e. potentially an
         # alias. We use these to find where to insert in the JSON-LD @context.
