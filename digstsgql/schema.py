@@ -22,7 +22,7 @@ from digstsgql.jsonld import JSONLDExtension
     directives=[JSONLD(id="http://www.w3.org/1999/02/22-rdf-syntax-ns#langString")],
 )
 class LangString:
-    lang: str = strawberry.field(description="Language tag.")  # TODO: JSONLD
+    lang: str | None = strawberry.field(description="Language tag.")  # TODO: JSONLD
     value: str = strawberry.field(description="Literal.")  # TODO: JSONLD
 
 
@@ -51,7 +51,7 @@ class FormalOrganisationType:
     @staticmethod
     async def definition(
         root: "FormalOrganisationType",
-        languages: list[str] | None = None,
+        languages: list[str | None] | None = None,
     ) -> list[LangString]:
         if languages is None:
             return root.definitions
@@ -69,7 +69,7 @@ class FormalOrganisationType:
     @staticmethod
     async def preferred_label(
         root: "FormalOrganisationType",
-        languages: list[str] | None = None,
+        languages: list[str | None] | None = None,
     ) -> list[LangString]:
         if languages is None:
             return root.preferred_labels
