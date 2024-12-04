@@ -1,4 +1,5 @@
 import itertools
+from typing import Any
 from uuid import UUID
 
 import strawberry
@@ -6,6 +7,8 @@ from more_itertools import one
 from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette_context import context as starlette_context
+from strawberry.types import ExecutionContext
 
 from digstsgql import data
 from digstsgql import db
@@ -22,8 +25,8 @@ from digstsgql.jsonld import JSONLDExtension
     directives=[JSONLD(id="http://www.w3.org/1999/02/22-rdf-syntax-ns#langString")],
 )
 class LangString:
-    lang: str | None = strawberry.field(description="Language tag.")  # TODO: JSONLD
-    value: str = strawberry.field(description="Literal.")  # TODO: JSONLD
+    lang: str | None = strawberry.field(description="Language tag.")
+    value: str = strawberry.field(description="Literal.")
 
 
 @strawberry.type(
@@ -131,7 +134,7 @@ public_authority_type = FormalOrganisationType(
     directives=[JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", type="@id")],
 )
 class FormalOrganisation:
-    id: strawberry.ID = strawberry.field(name="_id")  # TODO: JSONLD
+    id: strawberry.ID = strawberry.field(name="_id")
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
@@ -248,7 +251,7 @@ class FormalOrganisation:
     directives=[JSONLD(id="http://www.w3.org/ns/org#OrganizationalUnit", type="@id")],
 )
 class OrganisationalUnit:
-    id: strawberry.ID = strawberry.field(name="_id")  # TODO: JSONLD
+    id: strawberry.ID = strawberry.field(name="_id")
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
@@ -451,7 +454,21 @@ class Mutation:
         return "OK"
 
 
-schema = strawberry.Schema(
+class CustomSchema(strawberry.Schema):
+    def _create_execution_context(self, *args: Any, **kwargs: Any) -> ExecutionContext:
+        # HACK: We cannot use self.execution_context in the extensions due to a
+        # bug in Strawberry. This private method is called internally in
+        # Strawberry whenever the execution context is built, so we can use it
+        # to inject the created context into the request-scoped
+        # starlette-context, which can be properly accessed from the extension
+        # around the Strawberry framework.
+        # https://github.com/strawberry-graphql/strawberry/issues/3571
+        execution_context = super()._create_execution_context(*args, **kwargs)
+        starlette_context["execution_context"] = execution_context
+        return execution_context
+
+
+schema = CustomSchema(
     query=Query,
     mutation=Mutation,
     extensions=[JSONLDExtension],

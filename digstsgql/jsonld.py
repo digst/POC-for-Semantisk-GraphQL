@@ -1,4 +1,7 @@
+import base64
+import bz2
 import datetime
+import json
 from decimal import Decimal
 from typing import Any
 from typing import Callable
@@ -6,10 +9,13 @@ from uuid import UUID
 
 import strawberry
 from graphql import GraphQLResolveInfo
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.responses import Response
 from starlette_context import context as starlette_context
-from strawberry import Schema
 from strawberry.extensions import SchemaExtension
 from strawberry.schema_directive import Location
+from strawberry.types import ExecutionContext
 from strawberry.types.base import StrawberryOptional
 from strawberry.utils.await_maybe import AsyncIteratorOrIterator
 from strawberry.utils.await_maybe import AwaitableOrValue
@@ -39,7 +45,11 @@ class JSONLD:
     container: str | None = None
 
     def as_dict(self) -> dict[str, str]:
-        """Convert to JSON-LD @context dict."""
+        """Convert to JSON-LD @context dict.
+
+        # https://www.w3.org/TR/json-ld/#context-definitions
+        # https://www.w3.org/TR/json-ld/#keywords
+        """
         res = {
             "@id": self.id,
         }
@@ -67,27 +77,58 @@ FALLBACK_TYPES: dict = {
 
 
 class JSONLDExtension(SchemaExtension):
-    """Strawberry extension which adds JSON-LD context as a GraphQL extension.
+    """Strawberry extension which adds JSON-LD context as a GraphQL extension
+    and HTTP header.
 
-    https://www.w3.org/TR/json-ld/#scoped-contexts
-    https://www.w3.org/TR/json-ld/#context-definitions
-    https://www.w3.org/TR/json-ld/#keywords
+    JSON-LD contexts can either be directly embedded into the document (an
+    embedded context) or be referenced using a URL[1]. As per the GraphQL
+    spec[2], the only keys allowed in the response are `data`, `errors` and
+    `extensions`. We are therefore not allowed to add an embedded context using
+    a JSON-LD `@context` key.
+
+    Ordinary JSON documents can be interpreted as JSON-LD by providing an
+    explicit JSON-LD context document, for example by referencing a JSON-LD
+    context document in an HTTP Link Header[3]. In this way, we avoid breaking
+    the GraphQL spec, while still providing JSON-LD processors with JSON-LD
+    context data.
+
+    [1] https://www.w3.org/TR/json-ld11/#the-context
+    [2] https://spec.graphql.org/draft/#sec-Response-Format
+    [3] https://www.w3.org/TR/json-ld11/#interpreting-json-as-json-ld
     """
 
+    @property
+    def real_execution_context(self) -> ExecutionContext:
+        # HACK: see _create_execution_context() in schema.py
+        return starlette_context["execution_context"]
+
     def on_execute(self) -> AsyncIteratorOrIterator[None]:  # type: ignore
-        """Instantiate empty JSON-LD context on every GraphQL execution."""
-        # NOTE: We cannot use self.execution_context due to a bug in
-        # Strawberry, so we use request-scoped starlette-context instead.
-        # https://github.com/strawberry-graphql/strawberry/issues/3571
-        starlette_context["jsonld_context"] = {}
-        yield
+        """Called for the execution step of the GraphQL query."""
+        # Instantiate empty JSON-LD context on every GraphQL execution
+        context: dict = {}
+        self.real_execution_context.context["jsonld_context"] = context
+
+        yield  # Execute! This will build a JSON-LD context through the resolve() hook
+
+        # Add HTTP 'Link' header to JSON-LD context document. The generated
+        # JSON-LD context is encoded as part of the URL to make it stateless.
+        request: Request = self.real_execution_context.context["request"]
+        response: Response = self.real_execution_context.context["response"]
+        url = request.url_for("jsonld-context", context=encode_context(context))
+        response.headers["Link"] = (
+            f"<{url}>"
+            ';rel="http://www.w3.org/ns/json-ld#context"'
+            ';type="application/ld+json"'
+        )
 
     def _add_to_context(self, info: GraphQLResolveInfo) -> None:
         """Add resolved field to the JSON-LD context."""
         # `info.field_name` and `info.parent_type` is the actual field and type
         # in the *schema*. We use these to fetch the JSONLD directive object.
-        schema: Schema = info.context["schema"]
-        field = schema.get_field_for_type(info.field_name, info.parent_type.name)
+        field = self.real_execution_context.schema.get_field_for_type(
+            field_name=info.field_name,
+            type_name=info.parent_type.name,
+        )
         if field is None:
             # Introspection queries fetch the `__schema` field which is not
             # part of our schema: ignore.
@@ -125,12 +166,13 @@ class JSONLDExtension(SchemaExtension):
         # Walk context to find the parent node. All ancestors are guaranteed to
         # exist in the context because GraphQL is resolved in a breadth-first
         # manner.
-        context: dict = starlette_context["jsonld_context"]
+        context: dict = self.real_execution_context.context["jsonld_context"]
         for ancestor in ancestors:
             context = context["@context"][ancestor]
 
         # Add this node to the parent's context, creating it if this is the
         # first child.
+        # https://www.w3.org/TR/json-ld/#scoped-contexts
         context = context.setdefault("@context", {})
         context[node] = field_context.as_dict()
 
@@ -152,10 +194,7 @@ class JSONLDExtension(SchemaExtension):
         # Query root is not part of the path in Strawberry, so it was ignored
         # when building the JSON-LD context dict above. Therefore, everything
         # is correct when the built context is nested under `data`.
-        try:
-            context = starlette_context["jsonld_context"]
-        except KeyError:
-            return {}
+        context: dict = self.real_execution_context.context["jsonld_context"]
         return {
             "@context": {
                 "data": {
@@ -164,3 +203,31 @@ class JSONLDExtension(SchemaExtension):
                 },
             },
         }
+
+
+async def context_endpoint(request: Request) -> JSONResponse:
+    """JSON-LD Context document endpoint."""
+    context = request.path_params["context"]
+    return JSONResponse(decode_context(context))
+
+
+def encode_context(context: dict) -> str:
+    """Encode and compress context."""
+    # TODO: This can probably be done without encoding/decoding twice
+    json_string = json.dumps(context)
+    json_bytes = json_string.encode()
+    compressed_bytes = bz2.compress(json_bytes)
+    b64_bytes = base64.urlsafe_b64encode(compressed_bytes)
+    b64_string = b64_bytes.decode()
+    return b64_string
+
+
+def decode_context(b64_string: str) -> dict:
+    """Decode and decompress context."""
+    # TODO: This can probably be done without encoding/decoding twice
+    b64_bytes = b64_string.encode()
+    compressed_bytes = base64.urlsafe_b64decode(b64_bytes)
+    json_bytes = bz2.decompress(compressed_bytes)
+    json_string = json_bytes.decode()
+    context = json.loads(json_string)
+    return context

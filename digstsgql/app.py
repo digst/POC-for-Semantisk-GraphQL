@@ -18,6 +18,7 @@ from strawberry.printer import print_schema
 from digstsgql import db
 from digstsgql.config import Settings
 from digstsgql.dataloaders import Dataloaders
+from digstsgql.jsonld import context_endpoint
 
 from .schema import schema
 
@@ -50,7 +51,6 @@ class CustomGraphQL(GraphQL):
         return {
             "request": request,
             "response": response,
-            "schema": self.schema,
             # A single database session ensures a consistent view across the
             # GraphQL operation. The session is started by the Starlette
             # SessionMiddleware.
@@ -74,12 +74,6 @@ def create_app():
     settings = Settings()
     sessionmaker = db.create_async_sessionmaker(settings.database.url)
 
-    # TODO: We are not allowed to add a `@context` entry to the response map as
-    # per the GraphQL spec:
-    # https://spec.graphql.org/draft/#sec-Response-Format
-    # Perhaps we could add it as HTTP header?
-    # https://www.w3.org/TR/json-ld11/#interpreting-json-as-json-ld
-
     app = Starlette(
         middleware=[
             Middleware(RawContextMiddleware),
@@ -90,6 +84,12 @@ def create_app():
             Route("/graphql", CustomGraphQL(schema)),
             # Schema definition in SDL format
             Route("/graphql/schema.graphql", PlainTextResponse(print_schema(schema))),
+            # JSON-LD Context document
+            Route(
+                "/graphql/contexts/{context:str}.jsonld",
+                context_endpoint,
+                name="jsonld-context",
+            ),
         ],
     )
 
