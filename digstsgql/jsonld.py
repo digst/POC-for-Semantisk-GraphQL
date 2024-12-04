@@ -194,7 +194,12 @@ class JSONLDExtension(SchemaExtension):
         # Query root is not part of the path in Strawberry, so it was ignored
         # when building the JSON-LD context dict above. Therefore, everything
         # is correct when the built context is nested under `data`.
-        context: dict = self.real_execution_context.context["jsonld_context"]
+        try:
+            # The jsonld_context may not have been set if the GraphQL query was
+            # never executed, e.g. due to syntax errors.
+            context: dict = self.real_execution_context.context["jsonld_context"]
+        except KeyError:
+            return {}
         return {
             "@context": {
                 "data": {
