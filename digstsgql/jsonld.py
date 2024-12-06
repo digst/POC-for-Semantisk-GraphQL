@@ -211,7 +211,7 @@ class JSONLDExtension(SchemaExtension):
 async def context_endpoint(request: Request) -> JSONResponse:
     """JSON-LD Context document endpoint."""
     context = request.path_params["context"]
-    return JSONResponse(decode_context(context))
+    return JSONResponse(decode_context(context), media_type="application/ld+json")
 
 
 def encode_context(context: dict) -> str:
