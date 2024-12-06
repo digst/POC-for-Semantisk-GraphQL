@@ -2,6 +2,7 @@ import base64
 import bz2
 import datetime
 import json
+from contextlib import suppress
 from decimal import Decimal
 from typing import Any
 from typing import Callable
@@ -105,7 +106,13 @@ class JSONLDExtension(SchemaExtension):
     def on_execute(self) -> AsyncIteratorOrIterator[None]:  # type: ignore
         """Called for the execution step of the GraphQL query."""
         # Instantiate empty JSON-LD context on every GraphQL execution
-        context: dict = {}
+        context = {
+            "@context": {
+                "data": {
+                    "@id": "https://example.org/#TODO",
+                },
+            },
+        }
         self.real_execution_context.context["jsonld_context"] = context
 
         yield  # Execute! This will build a JSON-LD context through the resolve() hook
@@ -165,9 +172,9 @@ class JSONLDExtension(SchemaExtension):
 
         # Walk context to find the parent node. All ancestors are guaranteed to
         # exist in the context because GraphQL is resolved in a breadth-first
-        # manner.
+        # manner. Add the "data" ancestor since it's not part of the schema.
         context: dict = self.real_execution_context.context["jsonld_context"]
-        for ancestor in ancestors:
+        for ancestor in ["data"] + ancestors:
             context = context["@context"][ancestor]
 
         # Add this node to the parent's context, creating it if this is the
@@ -194,20 +201,11 @@ class JSONLDExtension(SchemaExtension):
         # Query root is not part of the path in Strawberry, so it was ignored
         # when building the JSON-LD context dict above. Therefore, everything
         # is correct when the built context is nested under `data`.
-        try:
-            # The jsonld_context may not have been set if the GraphQL query was
-            # never executed, e.g. due to syntax errors.
-            context: dict = self.real_execution_context.context["jsonld_context"]
-        except KeyError:
-            return {}
-        return {
-            "@context": {
-                "data": {
-                    "@id": "https://example.org/#TODO",
-                    **context,
-                },
-            },
-        }
+        with suppress(KeyError):
+            return self.real_execution_context.context["jsonld_context"]
+        # The jsonld_context may not have been set if the GraphQL query was
+        # never executed, e.g. due to syntax errors.
+        return {}
 
 
 async def context_endpoint(request: Request) -> JSONResponse:
