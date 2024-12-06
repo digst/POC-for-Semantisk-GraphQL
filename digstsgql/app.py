@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
@@ -13,9 +15,11 @@ from starlette.types import Receive
 from starlette.types import Scope
 from starlette.types import Send
 from starlette.websockets import WebSocket
+from starlette_context import context as starlette_context
 from starlette_context.middleware import RawContextMiddleware
 from strawberry.asgi import GraphQL
 from strawberry.printer import print_schema
+from strawberry.types import ExecutionContext
 
 from digstsgql import db
 from digstsgql.config import Settings
@@ -96,6 +100,20 @@ class CustomGraphQL(GraphQL):
         html = html.replace("</body>", f"{playground_button}</body>")
 
         return HTMLResponse(html)
+
+    def encode_json(self, data: object) -> str:
+        # TODO: The JSON-LD playground does not currently support contexts
+        # through the HTTP Link header. Instead, we return invalid GraphQL (but
+        # valid JSON-LD) on GET requests, assuming only the playground does
+        # those. THIS IS CHEATING!
+        # https://github.com/json-ld/json-ld.org/pull/851
+        execution_context: ExecutionContext = starlette_context["execution_context"]
+        request: Request = execution_context.context["request"]
+        if request.method == "GET":
+            with suppress(Exception):
+                assert isinstance(data, dict)
+                data["@context"] = data["extensions"]["@context"]
+        return super().encode_json(data)
 
 
 def create_app():
