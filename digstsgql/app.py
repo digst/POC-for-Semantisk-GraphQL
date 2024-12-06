@@ -3,6 +3,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
+from starlette.responses import HTMLResponse
 from starlette.responses import PlainTextResponse
 from starlette.responses import RedirectResponse
 from starlette.responses import Response
@@ -62,6 +63,39 @@ class CustomGraphQL(GraphQL):
             # https://strawberry.rocks/docs/guides/dataloaders#usage-with-context
             "dataloaders": Dataloaders(session),
         }
+
+    async def render_graphql_ide(self, request: Request) -> HTMLResponse:
+        html = self.graphql_ide_html
+
+        playground_button = """
+        <style>
+            .playground-button {
+                position: absolute;
+                top: 0;
+                right: 0;
+            }
+        </style>
+        <script>
+            function playground() {
+                // Get GraphQL query from editor
+                const queryEditor = document.querySelector(".CodeMirror").CodeMirror;
+                const query = queryEditor.getValue();
+                // Construct URL for HTTP GET request for the query
+                const query_url = new URL(window.location.pathname, window.location.origin);
+                query_url.searchParams.append("query", query);
+                // Construct JSON-LD playground with seeded query URL
+                const playground_url = new URL("https://json-ld.org/playground/");
+                playground_url.searchParams.append("json-ld", query_url.href);
+                // Open playground in new tab
+                window.open(playground_url.href, "_blank");
+            }
+        </script>
+        <button class="playground-button" type="button" onclick="playground();">Playground</button>
+        """
+
+        html = html.replace("</body>", f"{playground_button}</body>")
+
+        return HTMLResponse(html)
 
 
 def create_app():
