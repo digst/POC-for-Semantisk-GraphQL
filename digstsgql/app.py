@@ -65,6 +65,7 @@ class CustomGraphQL(GraphQL):
             # though they should be shared between multiple resolvers, they
             # should NOT be shared across requests.
             # https://strawberry.rocks/docs/guides/dataloaders#usage-with-context
+            # https://github.com/graphql/dataloader?tab=readme-ov-file#creating-a-new-dataloader-per-request
             "dataloaders": Dataloaders(session),
         }
 

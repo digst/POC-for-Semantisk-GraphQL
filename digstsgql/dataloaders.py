@@ -7,7 +7,11 @@ from strawberry.dataloader import DataLoader
 
 from digstsgql import db
 
-# # https://github.com/graphql/dataloader?tab=readme-ov-file#using-with-graphql
+# DataLoader pairs nicely well with GraphQL. GraphQL fields are designed to be
+# stand-alone functions. Without a caching or batching mechanism, it's easy for
+# a naive GraphQL server to issue new database requests each time a field is
+# resolved.
+# https://github.com/graphql/dataloader?tab=readme-ov-file#using-with-graphql
 
 
 async def load_companies(

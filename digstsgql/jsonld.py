@@ -107,7 +107,8 @@ class JSONLDExtension(SchemaExtension):
 
     def on_execute(self) -> AsyncIteratorOrIterator[None]:  # type: ignore
         """Called for the execution step of the GraphQL query."""
-        # Instantiate empty JSON-LD context on every GraphQL execution
+        # Instantiate empty JSON-LD context on every GraphQL execution. A
+        # GraphQL response is always nested under the `data` key.
         context = {
             "@context": {
                 "data": {
@@ -199,10 +200,6 @@ class JSONLDExtension(SchemaExtension):
 
     def get_results(self) -> dict:
         """Return JSON-LD context as a GraphQL extension under the `@context` key."""
-        # A GraphQL response is always nested under the `data` key. The GraphQL
-        # Query root is not part of the path in Strawberry, so it was ignored
-        # when building the JSON-LD context dict above. Therefore, everything
-        # is correct when the built context is nested under `data`.
         with suppress(KeyError):
             return self.real_execution_context.context["jsonld_context"]
         # The jsonld_context may not have been set if the GraphQL query was
