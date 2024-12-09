@@ -69,38 +69,39 @@ class CustomGraphQL(GraphQL):
         }
 
     async def render_graphql_ide(self, request: Request) -> HTMLResponse:
-        html = self.graphql_ide_html
-
+        """Inject JSON-LD Playground button into the GraphiQL IDE."""
         playground_button = """
-        <style>
-            .playground-button {
-                position: absolute;
-                top: 0;
-                right: 0;
-            }
-        </style>
         <script>
+            // setTimeout allows the React components to load
+            setTimeout(() => {
+                const playgroundButton = `
+                    <button type="button" id="playground-button" class="graphiql-un-styled graphiql-toolbar-button" aria-label="Open in JSON-LD Playground" data-state="closed" onclick="playground();">
+                        <div class="graphiql-toolbar-icon" style="color: transparent; text-shadow: 0 0 0 hsla(219, 28%, 32%, .5); font-size: 1.5em;">🛝</div>
+                    </button>
+                `;
+                const toolbar = document.querySelector(".graphiql-toolbar");
+                toolbar.insertAdjacentHTML("beforeend", playgroundButton);
+            });
+
             function playground() {
                 // Get GraphQL query from editor
                 const queryEditor = document.querySelector(".CodeMirror").CodeMirror;
                 const query = queryEditor.getValue();
                 // Minify query
-                const query_minified = GraphiQL.GraphQL.stripIgnoredCharacters(query);
+                const minifiedQuery = GraphiQL.GraphQL.stripIgnoredCharacters(query);
                 // Construct HTTP GET request URL for the query
-                const query_url = new URL(window.location.pathname, window.location.origin);
-                query_url.searchParams.append("query", query_minified);
+                const queryUrl = new URL(window.location.pathname, window.location.origin);
+                queryUrl.searchParams.append("query", minifiedQuery);
                 // Construct JSON-LD playground with seeded query URL
-                const playground_url = new URL("https://json-ld.org/playground/");
-                playground_url.searchParams.append("json-ld", query_url.href);
+                const playgroundUrl = new URL("https://json-ld.org/playground/");
+                playgroundUrl.searchParams.append("json-ld", queryUrl.href);
                 // Open playground in new tab
-                window.open(playground_url.href, "_blank");
+                window.open(playgroundUrl.href, "_blank");
             }
         </script>
-        <button class="playground-button" type="button" onclick="playground();">Playground</button>
         """
-
+        html = self.graphql_ide_html
         html = html.replace("</body>", f"{playground_button}</body>")
-
         return HTMLResponse(html)
 
     def encode_json(self, data: object) -> str:
