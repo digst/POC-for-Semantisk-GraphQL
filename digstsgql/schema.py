@@ -134,7 +134,7 @@ public_authority_type = FormalOrganisationType(
     directives=[JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", type="@id")],
 )
 class FormalOrganisation:
-    id: strawberry.ID = strawberry.field(name="_id")
+    local_identifier: UUID
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
@@ -149,6 +149,10 @@ class FormalOrganisation:
     company_id: strawberry.Private[UUID | None]
     public_authority_id: strawberry.Private[UUID | None]
     # topenhed_id: strawberry.Private[UUID | None]
+
+    @strawberry.field(name="_id", description="Object's ID.")
+    async def id(root: "FormalOrganisation") -> strawberry.ID:
+        return strawberry.ID(f"https://data.gov.dk/TODO/{root.local_identifier}")
 
     @strawberry.field(
         description="Organisation's public authority's code.",
@@ -240,7 +244,7 @@ class FormalOrganisation:
     ) -> list["OrganisationalUnit"]:
         session: AsyncSession = info.context["session"]
         query = select(db.Organisationenhed.id).where(
-            db.Organisationenhed.organisation_id == root.id
+            db.Organisationenhed.organisation_id == root.local_identifier
         )
         uuids = list((await session.scalars(query)).all())
         return await get_organisational_units(info=info, ids=uuids)
@@ -251,7 +255,8 @@ class FormalOrganisation:
     directives=[JSONLD(id="http://www.w3.org/ns/org#OrganizationalUnit", type="@id")],
 )
 class OrganisationalUnit:
-    id: strawberry.ID = strawberry.field(name="_id")
+    local_identifier: UUID
+
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
@@ -265,6 +270,10 @@ class OrganisationalUnit:
 
     organisation_id: strawberry.Private[UUID | None]
     parent_id: strawberry.Private[UUID | None]
+
+    @strawberry.field(name="_id", description="Object's ID.")
+    async def id(root: "OrganisationalUnit") -> strawberry.ID:
+        return strawberry.ID(f"https://data.gov.dk/TODO/{root.local_identifier}")
 
     @strawberry.field(
         description="Unit's children units.",
@@ -283,7 +292,7 @@ class OrganisationalUnit:
     ) -> list["OrganisationalUnit"]:
         session: AsyncSession = info.context["session"]
         query = select(db.Organisationenhed.id).where(
-            db.Organisationenhed.overordnetenhed_id == root.id
+            db.Organisationenhed.overordnetenhed_id == root.local_identifier
         )
         uuids = list((await session.scalars(query)).all())
         return await get_organisational_units(info=info, ids=uuids)
@@ -359,7 +368,7 @@ async def get_organisations(
     # Convert database objects to GraphQL types
     return [
         FormalOrganisation(
-            id=strawberry.ID(str(r.id)),
+            local_identifier=r.id,
             user_friendly_key=r.brugervendtnoegle,
             preferred_label=r.organisationsnavn,
             company_id=r.virksomhed_id,
@@ -391,7 +400,7 @@ async def get_organisational_units(
     # Convert database objects to GraphQL types
     return [
         OrganisationalUnit(
-            id=strawberry.ID(str(r.id)),
+            local_identifier=r.id,
             user_friendly_key=r.brugervendtnoegle,
             preferred_label=r.enhedsnavn,
             organisation_id=r.organisation_id,
