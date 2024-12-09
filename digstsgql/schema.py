@@ -16,9 +16,6 @@ from digstsgql.dataloaders import Dataloaders
 from digstsgql.jsonld import JSONLD
 from digstsgql.jsonld import JSONLDExtension
 
-# TODO: should _id be the objects UUID or e.g. `fot:Company`?
-# TODO: what about _type?
-
 
 @strawberry.type(
     description="Language-tagged string value.",
