@@ -26,7 +26,7 @@ from digstsgql.jsonld import JSONLDExtension
 )
 class LangString:
     lang: str | None = strawberry.field(description="Language tag.")
-    value: str = strawberry.field(description="Literal.")
+    string: str = strawberry.field(description="Literal.")
 
 
 @strawberry.type(
@@ -83,48 +83,48 @@ company_type = FormalOrganisationType(
     definitions=[
         LangString(
             lang="en",
-            value="A business is an organization that produces and sells goods or services.",
+            string="A business is an organization that produces and sells goods or services.",
         ),
         LangString(
             lang="da",
-            value="En virksomhed er en organisation, der producerer og sælger varer eller tjenester.",
+            string="En virksomhed er en organisation, der producerer og sælger varer eller tjenester.",
         ),
     ],
     preferred_labels=[
-        LangString(lang="en", value="Company"),
-        LangString(lang="da", value="Virksomhed"),
+        LangString(lang="en", string="Company"),
+        LangString(lang="da", string="Virksomhed"),
     ],
 )
 municipality_type = FormalOrganisationType(
     definitions=[
         LangString(
             lang="en",
-            value="A municipality is a local administrative unit within a geographically defined area.",
+            string="A municipality is a local administrative unit within a geographically defined area.",
         ),
         LangString(
             lang="da",
-            value="En kommune er en lokal administrativ enhed inden for et geografisk afgrænset område.",
+            string="En kommune er en lokal administrativ enhed inden for et geografisk afgrænset område.",
         ),
     ],
     preferred_labels=[
-        LangString(lang="en", value="Municipality"),
-        LangString(lang="da", value="Kommune"),
+        LangString(lang="en", string="Municipality"),
+        LangString(lang="da", string="Kommune"),
     ],
 )
 public_authority_type = FormalOrganisationType(
     definitions=[
         LangString(
             lang="en",
-            value="A public authority is a public administrative unit that has a law enforcement function within the framework of a state, a state, a region or a municipality, and which is not a parliamentary assembly.",
+            string="A public authority is a public administrative unit that has a law enforcement function within the framework of a state, a state, a region or a municipality, and which is not a parliamentary assembly.",
         ),
         LangString(
             lang="da",
-            value="En offentlig myndighed er et offentlig forvaltningsenhed, der har en lovudøvende funktion inden for rammerne af en stat, en delstat, en region eller en kommune, og som ikke er en parlamentarisk forsamling.",
+            string="En offentlig myndighed er et offentlig forvaltningsenhed, der har en lovudøvende funktion inden for rammerne af en stat, en delstat, en region eller en kommune, og som ikke er en parlamentarisk forsamling.",
         ),
     ],
     preferred_labels=[
-        LangString(lang="en", value="Public authority"),
-        LangString(lang="da", value="Offentlig myndighed"),
+        LangString(lang="en", string="Public authority"),
+        LangString(lang="da", string="Offentlig myndighed"),
     ],
 )
 
