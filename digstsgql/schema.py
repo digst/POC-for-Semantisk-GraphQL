@@ -134,6 +134,12 @@ public_authority_type = FormalOrganisationType(
     directives=[JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", type="@id")],
 )
 class FormalOrganisation:
+    type: str = strawberry.field(
+        name="_type",
+        default="http://www.w3.org/ns/org#FormalOrganization",
+        directives=[JSONLD(id="https://example.org/TODO", type="@type")],
+    )
+
     local_identifier: UUID
     user_friendly_key: str | None = strawberry.field(
         directives=[
@@ -255,6 +261,12 @@ class FormalOrganisation:
     directives=[JSONLD(id="http://www.w3.org/ns/org#OrganizationalUnit", type="@id")],
 )
 class OrganisationalUnit:
+    type: str = strawberry.field(
+        name="_type",
+        default="http://www.w3.org/ns/org#OrganizationalUnit",
+        directives=[JSONLD(id="https://example.org/TODO", type="@type")],
+    )
+
     local_identifier: UUID
 
     user_friendly_key: str | None = strawberry.field(
