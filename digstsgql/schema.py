@@ -235,7 +235,10 @@ class FormalOrganisation:
         return classifications
 
     @strawberry.field(
-        description="Organisation's organisational units.",
+        description=(
+            "Organisation's organisational units.\n\n"
+            "NOTE: The list will be empty if the organisation does not have any organisational units."
+        ),
         directives=[
             JSONLD(
                 id="https://data.gov.dk/model/core/organisation/extension/hasUpperUnit",
@@ -289,7 +292,10 @@ class OrganisationalUnit:
         return strawberry.ID(f"https://data.gov.dk/TODO/{root.local_identifier}")
 
     @strawberry.field(
-        description="Unit's children units.",
+        description=(
+            "Unit's subunits.\n\n"
+            "NOTE: The list will be empty if the unit does not have any subunits."
+        ),
         directives=[
             JSONLD(
                 id="http://www.w3.org/ns/org#hasSubOrganization",
