@@ -49,14 +49,8 @@ class JSONLD:
     def as_dict(self) -> dict[str, str]:
         """Convert to JSON-LD @context dict.
 
-        An expanded term definition MUST be a map composed of zero or more keys
-        from @id, @reverse, @type, @language, @container, @context, @prefix,
-        @propagate, or @protected. An expanded term definition SHOULD NOT
-        contain any other keys.
-
         # https://www.w3.org/TR/json-ld/#context-definitions
         # https://www.w3.org/TR/json-ld/#keywords
-        # https://www.w3.org/TR/json-ld11/#expanded-term-definition
         """
         res = {
             "@id": self.id,
@@ -116,9 +110,11 @@ class JSONLDExtension(SchemaExtension):
         """Called for the execution step of the GraphQL query."""
         # Instantiate empty JSON-LD context on every GraphQL execution. A
         # GraphQL response is always nested under the `data` key.
-        context: dict = {
+        context = {
             "@context": {
-                "data": {},
+                "data": {
+                    "@id": "https://example.org/#TODO",
+                },
             },
         }
         self.real_execution_context.context["jsonld_context"] = context
