@@ -42,6 +42,18 @@ class LangString:
 class FormalOrganisationType:
     definitions: strawberry.Private[list[LangString]]
     preferred_labels: strawberry.Private[list[LangString]]
+    broader: "FormalOrganisationType | None" = strawberry.field(
+        directives=[JSONLD(id="http://www.w3.org/2004/02/skos/core#broader")],
+    )
+    narrower: list["FormalOrganisationType"] = strawberry.field(
+        default_factory=list,
+        directives=[JSONLD(id="http://www.w3.org/2004/02/skos/core#narrower")],
+    )
+
+    def __post_init__(self):
+        # Set double-linked relationship
+        if self.broader is not None:
+            self.broader.narrower.append(self)
 
     @strawberry.field(
         description="Definition.",
@@ -95,22 +107,7 @@ company_type = FormalOrganisationType(
         LangString(lang="en", string="Company"),
         LangString(lang="da", string="Virksomhed"),
     ],
-)
-municipality_type = FormalOrganisationType(
-    definitions=[
-        LangString(
-            lang="en",
-            string="A municipality is a local administrative unit within a geographically defined area.",
-        ),
-        LangString(
-            lang="da",
-            string="En kommune er en lokal administrativ enhed inden for et geografisk afgrænset område.",
-        ),
-    ],
-    preferred_labels=[
-        LangString(lang="en", string="Municipality"),
-        LangString(lang="da", string="Kommune"),
-    ],
+    broader=None,
 )
 public_authority_type = FormalOrganisationType(
     definitions=[
@@ -127,6 +124,41 @@ public_authority_type = FormalOrganisationType(
         LangString(lang="en", string="Public authority"),
         LangString(lang="da", string="Offentlig myndighed"),
     ],
+    broader=None,
+)
+governmental_authority_type = FormalOrganisationType(
+    definitions=[
+        LangString(
+            lang="en",
+            string="Governmental administrative unit that administers legislation or administration of a particular area.",
+        ),
+        LangString(
+            lang="da",
+            string="Statslig forvaltningsenhed, som administrerer lovgivning eller forvaltning af et bestemt område.",
+        ),
+    ],
+    preferred_labels=[
+        LangString(lang="en", string="Governmental authority"),
+        LangString(lang="da", string="Statslig myndighed"),
+    ],
+    broader=public_authority_type,
+)
+municipality_type = FormalOrganisationType(
+    definitions=[
+        LangString(
+            lang="en",
+            string="A municipality is a local administrative unit within a geographically defined area.",
+        ),
+        LangString(
+            lang="da",
+            string="En kommune er en lokal administrativ enhed inden for et geografisk afgrænset område.",
+        ),
+    ],
+    preferred_labels=[
+        LangString(lang="en", string="Municipality"),
+        LangString(lang="da", string="Kommune"),
+    ],
+    broader=public_authority_type,
 )
 
 
