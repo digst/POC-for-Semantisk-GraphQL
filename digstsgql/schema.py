@@ -350,10 +350,30 @@ class OrganisationalUnit:
 
 async def get_organisations(
     info: strawberry.Info,
-    local_identifiers: list[UUID] | None = UNSET,
-    preferred_labels: list[str] | None = UNSET,
-    registered_business_codes: list[str] | None = UNSET,
-    public_authority_codes: list[str] | None = UNSET,
+    local_identifiers: Annotated[
+        list[UUID] | None,
+        strawberry.argument(
+            description="Limit returned organisations to those with the given `localIdentifier`."
+        ),
+    ] = UNSET,
+    preferred_labels: Annotated[
+        list[str] | None,
+        strawberry.argument(
+            description="Limit returned organisations to those with the given `preferredLabel`."
+        ),
+    ] = UNSET,
+    registered_business_codes: Annotated[
+        list[str | None] | None,
+        strawberry.argument(
+            description="Limit returned organisations to those with the given `registeredBusinessCode`."
+        ),
+    ] = UNSET,
+    authority_codes: Annotated[
+        list[str | None] | None,
+        strawberry.argument(
+            description="Limit returned organisations to those with the given `authorityCode`."
+        ),
+    ] = UNSET,
 ) -> list[FormalOrganisation]:
     """Organisation resolver."""
     # Filter
@@ -400,8 +420,18 @@ async def get_organisations(
 
 async def get_organisational_units(
     info: strawberry.Info,
-    local_identifiers: list[UUID] | None = UNSET,
-    preferred_labels: list[str] | None = UNSET,
+    local_identifiers: Annotated[
+        list[UUID] | None,
+        strawberry.argument(
+            description="Limit returned organisational units to those with the given `localIdentifier`."
+        ),
+    ] = UNSET,
+    preferred_labels: Annotated[
+        list[str] | None,
+        strawberry.argument(
+            description="Limit returned organisational units to those with the given `preferredLabel`."
+        ),
+    ] = UNSET,
 ) -> list[OrganisationalUnit]:
     """Organisational Unit resolver."""
     # Filter
