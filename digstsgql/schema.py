@@ -40,6 +40,13 @@ class LangString:
     ],
 )
 class FormalOrganisationType:
+    type: str = strawberry.field(
+        name="_type",
+        default="https://data.gov.dk/model/core/organisation/extension/FormalOrganizationType",
+        directives=[JSONLD(id="@type")],
+    )
+    id: strawberry.ID = strawberry.field(name="_id", directives=[JSONLD(id="@id")])
+
     definitions: strawberry.Private[list[LangString]]
     preferred_labels: strawberry.Private[list[LangString]]
     broader: "FormalOrganisationType | None" = strawberry.field(
@@ -93,6 +100,9 @@ class FormalOrganisationType:
 
 
 company_type = FormalOrganisationType(
+    id=strawberry.ID(
+        "https://data.gov.dk/concept/model/formalorganizationtype/Company"
+    ),
     definitions=[
         LangString(
             lang="en",
@@ -110,6 +120,9 @@ company_type = FormalOrganisationType(
     broader=None,
 )
 public_authority_type = FormalOrganisationType(
+    id=strawberry.ID(
+        "https://data.gov.dk/concept/model/formalorganizationtype/PublicAuthority"
+    ),
     definitions=[
         LangString(
             lang="en",
@@ -127,6 +140,9 @@ public_authority_type = FormalOrganisationType(
     broader=None,
 )
 governmental_authority_type = FormalOrganisationType(
+    id=strawberry.ID(
+        "https://data.gov.dk/concept/model/formalorganizationtype/GovernmentalAuthority"
+    ),
     definitions=[
         LangString(
             lang="en",
@@ -144,6 +160,9 @@ governmental_authority_type = FormalOrganisationType(
     broader=public_authority_type,
 )
 municipality_type = FormalOrganisationType(
+    id=strawberry.ID(
+        "https://data.gov.dk/concept/model/formalorganizationtype/Municipality"
+    ),
     definitions=[
         LangString(
             lang="en",
@@ -170,7 +189,7 @@ class FormalOrganisation:
     type: str = strawberry.field(
         name="_type",
         default="http://www.w3.org/ns/org#FormalOrganization",
-        directives=[JSONLD(id="https://example.org/TODO", type="@type")],
+        directives=[JSONLD(id="@type")],
     )
 
     local_identifier: UUID = strawberry.field(
@@ -196,7 +215,11 @@ class FormalOrganisation:
     public_authority_id: strawberry.Private[UUID | None]
     # topenhed_id: strawberry.Private[UUID | None]
 
-    @strawberry.field(name="_id", description="Object's ID.")
+    @strawberry.field(
+        name="_id",
+        description="Object's ID.",
+        directives=[JSONLD(id="@id")],
+    )
     async def id(root: "FormalOrganisation") -> strawberry.ID:
         return strawberry.ID(f"https://data.gov.dk/TODO/{root.local_identifier}")
 
@@ -307,7 +330,7 @@ class OrganisationalUnit:
     type: str = strawberry.field(
         name="_type",
         default="http://www.w3.org/ns/org#OrganizationalUnit",
-        directives=[JSONLD(id="https://example.org/TODO", type="@type")],
+        directives=[JSONLD(id="@type")],
     )
 
     local_identifier: UUID = strawberry.field(
@@ -332,7 +355,11 @@ class OrganisationalUnit:
     organisation_id: strawberry.Private[UUID | None]
     parent_id: strawberry.Private[UUID | None]
 
-    @strawberry.field(name="_id", description="Object's ID.")
+    @strawberry.field(
+        name="_id",
+        description="Object's ID.",
+        directives=[JSONLD(id="@id")],
+    )
     async def id(root: "OrganisationalUnit") -> strawberry.ID:
         return strawberry.ID(f"https://data.gov.dk/TODO/{root.local_identifier}")
 

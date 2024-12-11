@@ -74,9 +74,7 @@ FALLBACK_TYPES: dict = {
     datetime.time: JSONLD(id="http://www.w3.org/2001/XMLSchema#time"),
     Decimal: JSONLD(id="http://www.w3.org/2001/XMLSchema#decimal"),
     UUID: JSONLD(id="http://www.w3.org/TR/sparql11-query/#func-struuid"),
-    strawberry.ID: JSONLD(
-        id="http://www.w3.org/2001/XMLSchema#ID"  # TODO: this is wrong
-    ),
+    strawberry.ID: JSONLD(id="@id"),
 }
 
 
