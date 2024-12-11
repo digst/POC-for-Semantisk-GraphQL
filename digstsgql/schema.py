@@ -51,9 +51,9 @@ class FormalOrganisationType:
     @staticmethod
     async def definition(
         root: "FormalOrganisationType",
-        languages: list[str | None] | None = None,
+        languages: list[str | None] | None = UNSET,
     ) -> list[LangString]:
-        if languages is None:
+        if not languages:
             return root.definitions
         return [x for x in root.definitions if x.lang in languages]
 
@@ -69,9 +69,9 @@ class FormalOrganisationType:
     @staticmethod
     async def preferred_label(
         root: "FormalOrganisationType",
-        languages: list[str | None] | None = None,
+        languages: list[str | None] | None = UNSET,
     ) -> list[LangString]:
-        if languages is None:
+        if not languages:
             return root.preferred_labels
         return [x for x in root.preferred_labels if x.lang in languages]
 
@@ -350,19 +350,19 @@ class OrganisationalUnit:
 
 async def get_organisations(
     info: strawberry.Info,
-    local_identifiers: list[UUID] | None = None,
-    preferred_labels: list[str] | None = None,
-    registered_business_codes: list[str] | None = None,
-    public_authority_codes: list[str] | None = None,
+    local_identifiers: list[UUID] | None = UNSET,
+    preferred_labels: list[str] | None = UNSET,
+    registered_business_codes: list[str] | None = UNSET,
+    public_authority_codes: list[str] | None = UNSET,
 ) -> list[FormalOrganisation]:
     """Organisation resolver."""
     # Filter
     query = select(db.Organisation.id)
-    if local_identifiers is not None:
+    if local_identifiers:
         query = query.where(db.Organisation.id.in_(local_identifiers))
-    if preferred_labels is not None:
+    if preferred_labels:
         query = query.where(db.Organisation.organisationsnavn.in_(preferred_labels))
-    if registered_business_codes is not None:
+    if registered_business_codes:
         query = query.where(
             db.Organisation.virksomhed_id.in_(
                 select(db.Virksomhed.id).where(
@@ -370,7 +370,7 @@ async def get_organisations(
                 )
             )
         )
-    if public_authority_codes is not None:
+    if public_authority_codes:
         query = query.where(
             db.Organisation.myndighed_id.in_(
                 select(db.Myndighed.id).where(
@@ -400,15 +400,15 @@ async def get_organisations(
 
 async def get_organisational_units(
     info: strawberry.Info,
-    local_identifiers: list[UUID] | None = None,
-    preferred_labels: list[str] | None = None,
+    local_identifiers: list[UUID] | None = UNSET,
+    preferred_labels: list[str] | None = UNSET,
 ) -> list[OrganisationalUnit]:
     """Organisational Unit resolver."""
     # Filter
     query = select(db.Organisationenhed.id)
-    if local_identifiers is not None:
+    if local_identifiers is not UNSET:
         query = query.where(db.Organisationenhed.id.in_(local_identifiers))
-    if preferred_labels is not None:
+    if preferred_labels is not UNSET:
         query = query.where(db.Organisationenhed.enhedsnavn.in_(preferred_labels))
     session: AsyncSession = info.context["session"]
     uuids = list((await session.scalars(query)).all())

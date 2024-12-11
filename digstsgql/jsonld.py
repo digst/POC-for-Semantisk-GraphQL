@@ -14,6 +14,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.responses import Response
 from starlette_context import context as starlette_context
+from strawberry import UNSET
 from strawberry.extensions import SchemaExtension
 from strawberry.schema_directive import Location
 from strawberry.types import ExecutionContext
@@ -42,8 +43,8 @@ class JSONLD:
     """
 
     id: str
-    type: str | None = None
-    container: str | None = None
+    type: str | None = UNSET
+    container: str | None = UNSET
 
     def as_dict(self) -> dict[str, str]:
         """Convert to JSON-LD @context dict.
@@ -60,9 +61,9 @@ class JSONLD:
         res = {
             "@id": self.id,
         }
-        if self.type is not None:
+        if self.type:
             res["@type"] = self.type
-        if self.container is not None:
+        if self.container:
             res["@container"] = self.container
         return res
 
