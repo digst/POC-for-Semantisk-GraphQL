@@ -1,13 +1,17 @@
 import itertools
+from typing import Annotated
 from typing import Any
 from uuid import UUID
 
 import strawberry
 from more_itertools import one
+from sqlalchemy import false
+from sqlalchemy import or_
 from sqlalchemy import select
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette_context import context as starlette_context
+from strawberry import UNSET
 from strawberry.types import ExecutionContext
 
 from digstsgql import data
@@ -378,24 +382,36 @@ async def get_organisations(
     """Organisation resolver."""
     # Filter
     query = select(db.Organisation.id)
-    if local_identifiers:
+    if local_identifiers is not None and local_identifiers is not UNSET:
         query = query.where(db.Organisation.id.in_(local_identifiers))
-    if preferred_labels:
+    if preferred_labels is not None and preferred_labels is not UNSET:
         query = query.where(db.Organisation.organisationsnavn.in_(preferred_labels))
-    if registered_business_codes:
+    if registered_business_codes is not None and registered_business_codes is not UNSET:
         query = query.where(
-            db.Organisation.virksomhed_id.in_(
-                select(db.Virksomhed.id).where(
-                    db.Virksomhed.cvr_nummer.in_(registered_business_codes)
-                )
+            or_(
+                db.Organisation.virksomhed_id.in_(
+                    select(db.Virksomhed.id).where(
+                        db.Virksomhed.cvr_nummer.in_(registered_business_codes)
+                    )
+                ),
+                # NULL cannot be filtered using a WHERE IN clause
+                db.Organisation.virksomhed_id.is_(None)
+                if None in registered_business_codes
+                else false(),
             )
         )
-    if public_authority_codes:
+    if authority_codes is not None and authority_codes is not UNSET:
         query = query.where(
-            db.Organisation.myndighed_id.in_(
-                select(db.Myndighed.id).where(
-                    db.Myndighed.myndighedskode.in_(public_authority_codes)
-                )
+            or_(
+                db.Organisation.myndighed_id.in_(
+                    select(db.Myndighed.id).where(
+                        db.Myndighed.myndighedskode.in_(authority_codes)
+                    )
+                ),
+                # NULL cannot be filtered using a WHERE IN clause
+                db.Organisation.virksomhed_id.is_(None)
+                if None in authority_codes
+                else false(),
             )
         )
     session: AsyncSession = info.context["session"]
@@ -436,9 +452,9 @@ async def get_organisational_units(
     """Organisational Unit resolver."""
     # Filter
     query = select(db.Organisationenhed.id)
-    if local_identifiers is not UNSET:
+    if local_identifiers is not None and local_identifiers is not UNSET:
         query = query.where(db.Organisationenhed.id.in_(local_identifiers))
-    if preferred_labels is not UNSET:
+    if preferred_labels is not None and preferred_labels is not UNSET:
         query = query.where(db.Organisationenhed.enhedsnavn.in_(preferred_labels))
     session: AsyncSession = info.context["session"]
     uuids = list((await session.scalars(query)).all())
