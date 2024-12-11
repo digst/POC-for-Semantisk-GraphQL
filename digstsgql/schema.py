@@ -141,7 +141,14 @@ class FormalOrganisation:
         directives=[JSONLD(id="https://example.org/TODO", type="@type")],
     )
 
-    local_identifier: UUID
+    local_identifier: UUID = strawberry.field(
+        graphql_type=strawberry.ID,
+        directives=[
+            JSONLD(
+                id="https://data.gov.dk/model/core/organisation/extension/localIdentifier"
+            )
+        ],
+    )
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
@@ -271,8 +278,14 @@ class OrganisationalUnit:
         directives=[JSONLD(id="https://example.org/TODO", type="@type")],
     )
 
-    local_identifier: UUID
-
+    local_identifier: UUID = strawberry.field(
+        graphql_type=strawberry.ID,
+        directives=[
+            JSONLD(
+                id="https://data.gov.dk/model/core/organisation/extension/localIdentifier"
+            )
+        ],
+    )
     user_friendly_key: str | None = strawberry.field(
         directives=[
             JSONLD(
