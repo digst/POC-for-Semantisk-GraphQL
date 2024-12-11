@@ -57,7 +57,7 @@ class FormalOrganisationType:
         directives=[JSONLD(id="http://www.w3.org/2004/02/skos/core#narrower")],
     )
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Set double-linked relationship
         if self.broader is not None:
             self.broader.narrower.append(self)
@@ -66,8 +66,7 @@ class FormalOrganisationType:
         description="Definition.",
         directives=[
             JSONLD(
-                id="http://www.w3.org/2004/02/skos/core#definition",
-                container="@set",
+                id="http://www.w3.org/2004/02/skos/core#definition", container="@set"
             )
         ],
     )
@@ -84,8 +83,7 @@ class FormalOrganisationType:
         description="Preferred label.",
         directives=[
             JSONLD(
-                id="http://www.w3.org/2004/02/skos/core#prefLabel",
-                container="@set",
+                id="http://www.w3.org/2004/02/skos/core#prefLabel", container="@set"
             ),
         ],
     )
@@ -216,9 +214,7 @@ class FormalOrganisation:
     # topenhed_id: strawberry.Private[UUID | None]
 
     @strawberry.field(
-        name="_id",
-        description="Object's ID.",
-        directives=[JSONLD(id="@id")],
+        name="_id", description="Object's ID.", directives=[JSONLD(id="@id")]
     )
     async def id(root: "FormalOrganisation") -> strawberry.ID:
         return strawberry.ID(f"https://data.gov.dk/TODO/{root.local_identifier}")
@@ -276,7 +272,7 @@ class FormalOrganisation:
         ],
     )
     @staticmethod
-    async def classifications(
+    async def classification(
         root: "FormalOrganisation",
         info: strawberry.Info,
     ) -> list[FormalOrganisationType]:
@@ -297,6 +293,7 @@ class FormalOrganisation:
         return classifications
 
     @strawberry.field(
+        name="hasUnit",  # 🤷
         description=(
             "Organisation's organisational units.\n\n"
             "NOTE: The list will be empty if the organisation does not have any organisational units."
@@ -356,24 +353,19 @@ class OrganisationalUnit:
     parent_id: strawberry.Private[UUID | None]
 
     @strawberry.field(
-        name="_id",
-        description="Object's ID.",
-        directives=[JSONLD(id="@id")],
+        name="_id", description="Object's ID.", directives=[JSONLD(id="@id")]
     )
     async def id(root: "OrganisationalUnit") -> strawberry.ID:
         return strawberry.ID(f"https://data.gov.dk/TODO/{root.local_identifier}")
 
     @strawberry.field(
+        name="hasSubUnit",  # 🤷
         description=(
             "Unit's subunits.\n\n"
             "NOTE: The list will be empty if the unit does not have any subunits."
         ),
         directives=[
-            JSONLD(
-                id="http://www.w3.org/ns/org#hasSubOrganization",
-                type="@id",
-                container="@set",
-            )
+            JSONLD(id="http://www.w3.org/ns/org#hasUnit", type="@id", container="@set")
         ],
     )
     @staticmethod
@@ -389,6 +381,7 @@ class OrganisationalUnit:
         return await get_organisational_units(info=info, local_identifiers=uuids)
 
     @strawberry.field(
+        name="unitOf",  # 🤷
         description="Unit's formal organisation.",
         directives=[JSONLD(id="http://www.w3.org/ns/org#unitOf", type="@id")],
     )
@@ -407,13 +400,9 @@ class OrganisationalUnit:
         )
 
     @strawberry.field(
+        name="subUnitOf",  # 🤷
         description="Unit's parent unit.",
-        directives=[
-            JSONLD(
-                id="http://www.w3.org/ns/org#subOrganizationOf",
-                type="@id",
-            )
-        ],
+        directives=[JSONLD(id="http://www.w3.org/ns/org#unitOf", type="@id")],
     )
     @staticmethod
     async def parent(
