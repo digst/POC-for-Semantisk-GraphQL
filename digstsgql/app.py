@@ -77,7 +77,7 @@ class CustomGraphQL(GraphQL):
             setTimeout(() => {
                 const playgroundButton = `
                     <button type="button" id="playground-button" class="graphiql-un-styled graphiql-toolbar-button" aria-label="Open in JSON-LD Playground" data-state="closed" onclick="playground();">
-                        <div class="graphiql-toolbar-icon" style="color: transparent; text-shadow: 0 0 0 hsla(219, 28%, 32%, .5); font-size: 1.5em;">🛝</div>
+                        <div class="graphiql-toolbar-icon" style="color: transparent; text-shadow: 0 0 0 hsla(var(--color-neutral), var(--alpha-tertiary)); font-size: 1.5em;">🛝</div>
                     </button>
                 `;
                 const toolbar = document.querySelector(".graphiql-toolbar");
