@@ -34,7 +34,7 @@ class LangString:
     description="Organisation type.",
     directives=[
         JSONLD(
-            id="https://data.gov.dk/model/core/organisation/extension/FormalOrganizationType",
+            id="https://data.gov.dk/concept/model/formalorganizationtype/FormalOrganizationType",
             type="@id",
         )
     ],
