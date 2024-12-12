@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import Any
 from typing import Callable
 from uuid import UUID
+from uuid import uuid4
 
 import strawberry
 from graphql import GraphQLResolveInfo
@@ -111,7 +112,10 @@ class JSONLDExtension(SchemaExtension):
         context = {
             "@context": {
                 "data": {
-                    "@id": "https://example.org/#TODO",
+                    # We don't have a good type for this, but the response is
+                    # dynamic (based on the data in the database), so return a
+                    # random UUID under our namespace.
+                    "@id": f"https://data.gov.dk/dataresponse/{uuid4()}",
                 },
             },
         }
@@ -214,7 +218,6 @@ async def context_endpoint(request: Request) -> JSONResponse:
 
 def encode_context(context: dict) -> str:
     """Encode and compress context."""
-    # TODO: This can probably be done without encoding/decoding twice
     json_string = json.dumps(context)
     json_bytes = json_string.encode()
     compressed_bytes = bz2.compress(json_bytes)
@@ -225,7 +228,6 @@ def encode_context(context: dict) -> str:
 
 def decode_context(b64_string: str) -> dict:
     """Decode and decompress context."""
-    # TODO: This can probably be done without encoding/decoding twice
     b64_bytes = b64_string.encode()
     compressed_bytes = base64.urlsafe_b64decode(b64_bytes)
     json_bytes = bz2.decompress(compressed_bytes)
