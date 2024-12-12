@@ -16,6 +16,7 @@ starlette-context = "^0.3"
 uvicorn = "^0.29"
 sqlalchemy = "^2"
 psycopg = "^3"
+httpx = "^0.28"
 
 [tool.poetry.group.pre-commit.dependencies]
 mypy = "^1"

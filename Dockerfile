@@ -19,6 +19,9 @@ RUN python -m venv $VIRTUAL_ENV
 COPY pyproject.toml poetry.lock* ./
 RUN poetry install --no-root
 
+# See playground.py
+ADD https://github.com/caspervk/json-ld.org.git#71b6d5ce38081492aa4be92d09098eabe1d49d30 /json-ld.org
+
 COPY digstsgql ./digstsgql
 
 # Properly create HTTPS URLs in url_for() when behind reverse proxy
