@@ -217,7 +217,7 @@ class FormalOrganisation:
         name="_id", description="Object's ID.", directives=[JSONLD(id="@id")]
     )
     async def id(root: "FormalOrganisation") -> strawberry.ID:
-        return strawberry.ID(f"https://data.gov.dk/TODO/{root.local_identifier}")
+        return strawberry.ID(f"https://data.gov.dk/dataentity/{root.local_identifier}")
 
     @strawberry.field(
         description="Organisation's public authority's code.",
@@ -356,7 +356,7 @@ class OrganisationalUnit:
         name="_id", description="Object's ID.", directives=[JSONLD(id="@id")]
     )
     async def id(root: "OrganisationalUnit") -> strawberry.ID:
-        return strawberry.ID(f"https://data.gov.dk/TODO/{root.local_identifier}")
+        return strawberry.ID(f"https://data.gov.dk/dataentity/{root.local_identifier}")
 
     @strawberry.field(
         name="hasSubUnit",  # 🤷
