@@ -12,6 +12,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette_context import context as starlette_context
 from strawberry import UNSET
+from strawberry.schema_directive import Location
 from strawberry.types import ExecutionContext
 
 from digstsgql import data
@@ -19,6 +20,29 @@ from digstsgql import db
 from digstsgql.dataloaders import Dataloaders
 from digstsgql.jsonld import JSONLD
 from digstsgql.jsonld import JSONLDExtension
+
+
+@strawberry.schema_directive(locations=[Location.SCHEMA])
+class EntityTemplate:
+    """TODO."""
+
+    namespace: str
+    reference: str
+
+    # The python attribute is snake_case, unlike the camelCased reference
+    # exposed in the schema.
+    _reference: strawberry.Private[str]
+
+    def resolve(self, root: Any) -> strawberry.ID:
+        """Render ID with namespace."""
+        return strawberry.ID(f"{self.namespace}{getattr(root, self._reference)}")
+
+
+entity_template = EntityTemplate(
+    namespace="https://data.gov.dk/dataentity/",
+    reference="localIdentifier",
+    _reference="local_identifier",
+)
 
 
 @strawberry.type(
@@ -184,6 +208,13 @@ municipality_type = FormalOrganisationType(
     directives=[JSONLD(id="http://www.w3.org/ns/org#FormalOrganization", type="@id")],
 )
 class FormalOrganisation:
+    id: strawberry.ID = strawberry.field(
+        resolver=entity_template.resolve,
+        name="_id",
+        description="Object's ID.",
+        directives=[JSONLD(id="@id")],
+    )
+
     type: str = strawberry.field(
         name="_type",
         default="http://www.w3.org/ns/org#FormalOrganization",
@@ -212,12 +243,6 @@ class FormalOrganisation:
     company_id: strawberry.Private[UUID | None]
     public_authority_id: strawberry.Private[UUID | None]
     # topenhed_id: strawberry.Private[UUID | None]
-
-    @strawberry.field(
-        name="_id", description="Object's ID.", directives=[JSONLD(id="@id")]
-    )
-    async def id(root: "FormalOrganisation") -> strawberry.ID:
-        return strawberry.ID(f"https://data.gov.dk/dataentity/{root.local_identifier}")
 
     @strawberry.field(
         description="Organisation's public authority's code.",
@@ -324,6 +349,13 @@ class FormalOrganisation:
     directives=[JSONLD(id="http://www.w3.org/ns/org#OrganizationalUnit", type="@id")],
 )
 class OrganisationalUnit:
+    id: strawberry.ID = strawberry.field(
+        resolver=entity_template.resolve,
+        name="_id",
+        description="Object's ID.",
+        directives=[JSONLD(id="@id")],
+    )
+
     type: str = strawberry.field(
         name="_type",
         default="http://www.w3.org/ns/org#OrganizationalUnit",
@@ -351,12 +383,6 @@ class OrganisationalUnit:
 
     organisation_id: strawberry.Private[UUID | None]
     parent_id: strawberry.Private[UUID | None]
-
-    @strawberry.field(
-        name="_id", description="Object's ID.", directives=[JSONLD(id="@id")]
-    )
-    async def id(root: "OrganisationalUnit") -> strawberry.ID:
-        return strawberry.ID(f"https://data.gov.dk/dataentity/{root.local_identifier}")
 
     @strawberry.field(
         name="hasSubUnit",  # 🤷
@@ -613,4 +639,7 @@ schema = CustomSchema(
     query=Query,
     mutation=Mutation,
     extensions=[JSONLDExtension],
+    schema_directives=[
+        entity_template,
+    ],
 )
