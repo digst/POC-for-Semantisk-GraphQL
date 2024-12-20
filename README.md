@@ -104,7 +104,7 @@ type Organisation {
 }
 ```
 
-with the following query and response.
+with the following query and response:
 
 **Query**
 
@@ -190,10 +190,7 @@ the response semantically through a JSON-LD context document served separately
 from the GraphQL API.
 
 This is implemented statelessly by encoding the JSON-LD context for a given
-GraphQL query as part of the URL in the HTTP Link header of the response.
-Furthermore, the JSON-LD context is returned as a [GraphQL `extensions`
-field](https://spec.graphql.org/October2021/#sec-Response-Format). This is
-solely for human consumption and is ignored by GraphQL and JSON-LD processors.
+GraphQL response as part of the URL in the HTTP Link header of the response:
 
 ```http
 POST /graphql HTTP/1.1
@@ -221,6 +218,15 @@ Link: <https://example.com/graphql/contexts/anNvbmxkK2dyYXBocWw=.jsonld>;rel="ht
   }
 }
 ```
+
+The JSON-LD context is also returned in the GraphQL
+[`extensions`](https://spec.graphql.org/October2021/#sec-Response-Format) map,
+which the GraphQL spec reserves for implementations to extend the protocol as
+desired. As a consequence, there are no restrictions on its contents, and so we
+can use it to embed the context directly in the GraphQL response. Since this is
+non-standard, no JSON-LD processor that can utilise this currently exists. The
+HTTP Link header approach is offered for compatibility with existing JSON-LD
+tooling.
 
 ## A Semantic GraphQL Schema
 
@@ -265,10 +271,14 @@ type Person @jsonld(id: "http://xmlns.com/foaf/0.1/Person", type: "@id") {
 This is what powers the construction of JSON-LD contexts at query-time, but
 directives are also available to GraphQL clients through
 [introspection](https://spec.graphql.org/October2021/#sec-Introspection), which
-is a way to query the schema itself using a GraphQL query. In addition, the
-complete GraphQL schema, including all directives, is available in GraphQL
-Schema Definition Language (SDL) at `/graphql/schema.graphql`, although this is
-non-standard.
+is a way to query the schema itself using a GraphQL query. Since the `@jsonld`
+directive is non-standard, no GraphQL client currently exists which understands
+and utilises the metadata it provides, but such client could be considered for
+future work.
+
+In addition, the complete GraphQL schema, including all directives, is
+available in GraphQL Schema Definition Language (SDL) at
+`/graphql/schema.graphql`.
 
 ### Fallback Types
 
