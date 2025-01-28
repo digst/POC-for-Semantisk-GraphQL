@@ -267,8 +267,8 @@ directives are also available to GraphQL clients through
 [introspection](https://spec.graphql.org/October2021/#sec-Introspection), which
 is a way to query the schema itself using a GraphQL query. In addition, the
 complete GraphQL schema, including all directives, is available in GraphQL
-Schema Definition Language (SDL) at `/graphql/schema.graphql`, although this is
-non-standard.
+Schema Definition Language (SDL) at
+[`/graphql/schema.graphql`](examples/schema.graphql).
 
 ### Fallback Types
 
@@ -345,6 +345,8 @@ type FormalOrganisation {
   localIdentifier: ID!
 }
 ```
+
+Note: `@jsonld` directives omitted for brevity.
 
 ## Getting Started
 

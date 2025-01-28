@@ -1,0 +1,122 @@
+"""JSON-LD term."""
+directive @jsonld(id: String!, type: String, container: String) on FIELD_DEFINITION | OBJECT
+
+directive @entityTemplate(namespace: String!, reference: String!) on SCHEMA
+
+schema @entityTemplate(namespace: "https://data.gov.dk/dataentity/", reference: "localIdentifier") {
+  query: Query
+  mutation: Mutation
+}
+
+"""Organisation."""
+type FormalOrganisation @jsonld(id: "http://www.w3.org/ns/org#FormalOrganization", type: "@id") {
+  """Object's ID."""
+  _id: ID! @jsonld(id: "@id")
+  _type: String! @jsonld(id: "@type")
+  localIdentifier: ID! @jsonld(id: "https://data.gov.dk/model/core/organisation/extension/localIdentifier")
+  userFriendlyKey: String @jsonld(id: "https://data.gov.dk/model/core/organisation/extension/userFriendlyKey")
+  preferredLabel: String @jsonld(id: "http://www.w3.org/2004/02/skos/core#prefLabel")
+
+  """Organisation's public authority's code."""
+  authorityCode: String @jsonld(id: "https://data.gov.dk/model/core/organisation/extension/authorityCode")
+
+  """Organisation's CVR-number."""
+  registeredBusinessCode: String @jsonld(id: "https://data.gov.dk/model/core/organisation/extension/registeredBusinessCode")
+
+  """Organisation's classifications."""
+  classification: [FormalOrganisationType!]! @jsonld(id: "http://www.w3.org/ns/org#classification", type: "@id", container: "@set")
+
+  """
+  Organisation's organisational units.
+  
+  NOTE: The list will be empty if the organisation does not have any organisational units.
+  """
+  hasUnit: [OrganisationalUnit!]! @jsonld(id: "https://data.gov.dk/model/core/organisation/extension/hasUpperUnit", type: "@id", container: "@set")
+}
+
+"""Organisation type."""
+type FormalOrganisationType @jsonld(id: "https://data.gov.dk/concept/model/formalorganizationtype/FormalOrganizationType", type: "@id") {
+  _type: String! @jsonld(id: "@type")
+  _id: ID! @jsonld(id: "@id")
+  broader: FormalOrganisationType @jsonld(id: "http://www.w3.org/2004/02/skos/core#broader")
+  narrower: [FormalOrganisationType!]! @jsonld(id: "http://www.w3.org/2004/02/skos/core#narrower")
+
+  """Definition."""
+  definition(languages: [String]): [LangString!]! @jsonld(id: "http://www.w3.org/2004/02/skos/core#definition", container: "@set")
+
+  """Preferred label."""
+  preferredLabel(languages: [String]): [LangString!]! @jsonld(id: "http://www.w3.org/2004/02/skos/core#prefLabel", container: "@set")
+}
+
+"""Language-tagged string value."""
+type LangString @jsonld(id: "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString") {
+  """Language tag."""
+  lang: String
+
+  """Literal."""
+  string: String!
+}
+
+type Mutation {
+  """Load fixture-data into database."""
+  loadData: String!
+}
+
+"""Organisational unit."""
+type OrganisationalUnit @jsonld(id: "http://www.w3.org/ns/org#OrganizationalUnit", type: "@id") {
+  """Object's ID."""
+  _id: ID! @jsonld(id: "@id")
+  _type: String! @jsonld(id: "@type")
+  localIdentifier: ID! @jsonld(id: "https://data.gov.dk/model/core/organisation/extension/localIdentifier")
+  userFriendlyKey: String @jsonld(id: "https://data.gov.dk/model/core/organisation/extension/userFriendlyKey")
+  preferredLabel: String @jsonld(id: "http://www.w3.org/2004/02/skos/core#prefLabel")
+
+  """
+  Unit's subunits.
+  
+  NOTE: The list will be empty if the unit does not have any subunits.
+  """
+  hasSubUnit: [OrganisationalUnit!]! @jsonld(id: "http://www.w3.org/ns/org#hasUnit", type: "@id", container: "@set")
+
+  """Unit's formal organisation."""
+  unitOf: FormalOrganisation @jsonld(id: "http://www.w3.org/ns/org#unitOf", type: "@id")
+
+  """Unit's parent unit."""
+  subUnitOf: OrganisationalUnit @jsonld(id: "http://www.w3.org/ns/org#unitOf", type: "@id")
+}
+
+type Query {
+  """Get organisational units."""
+  organisationalUnits(
+    """
+    Limit returned organisational units to those with the given `localIdentifier`.
+    """
+    localIdentifiers: [UUID!]
+
+    """
+    Limit returned organisational units to those with the given `preferredLabel`.
+    """
+    preferredLabels: [String!]
+  ): [OrganisationalUnit!]! @jsonld(id: "http://www.w3.org/ns/org#OrganizationalUnit", container: "@set")
+
+  """Get organisations."""
+  organisations(
+    """
+    Limit returned organisations to those with the given `localIdentifier`.
+    """
+    localIdentifiers: [UUID!]
+
+    """Limit returned organisations to those with the given `preferredLabel`."""
+    preferredLabels: [String!]
+
+    """
+    Limit returned organisations to those with the given `registeredBusinessCode`.
+    """
+    registeredBusinessCodes: [String]
+
+    """Limit returned organisations to those with the given `authorityCode`."""
+    authorityCodes: [String]
+  ): [FormalOrganisation!]! @jsonld(id: "http://www.w3.org/ns/org#FormalOrganization", container: "@set")
+}
+
+scalar UUID
